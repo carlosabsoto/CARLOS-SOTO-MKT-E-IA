@@ -18,11 +18,19 @@ export default async function handler(req, res) {
     const fetchText = async (url) => {
       try {
         const r = await fetch(url);
-        if (!r.ok) return { erro: "Arquivo não encontrado" };
-        return { conteudo: await r.text() };
+        if (!r.ok) return null;
+        return await r.text();
       } catch {
-        return { erro: "Erro ao consultar GitHub" };
+        return null;
       }
+    };
+
+    const resultado = {
+      emocionais: {},
+      reservatorios: {},
+      rastreios: {},
+      sistemas: {},
+      total_arquivos: 0
     };
 
     const promises = [];
@@ -30,68 +38,87 @@ export default async function handler(req, res) {
     // 🔹 Emocionais
     emocionais.forEach(n => {
       const url = `${BASE}BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`;
-      promises.push(fetchText(url).then(r => ({
-        categoria: "emocionais",
-        numero: n,
-        ...r
-      })));
+      promises.push(
+        fetchText(url).then(text => {
+          if (text) {
+            resultado.emocionais[n] = text;
+            resultado.total_arquivos++;
+          }
+        })
+      );
     });
 
     // 🔹 Reservatórios
     reservatorios.forEach(n => {
       const url = `${BASE}BIO-ANIMAL/RESERVATORIOS/RESERVATORIO-${n}.md`;
-      promises.push(fetchText(url).then(r => ({
-        categoria: "reservatorios",
-        numero: n,
-        ...r
-      })));
+      promises.push(
+        fetchText(url).then(text => {
+          if (text) {
+            resultado.reservatorios[n] = text;
+            resultado.total_arquivos++;
+          }
+        })
+      );
     });
 
     // 🔹 Rastreios
     rastreios.forEach(n => {
       const url = `${BASE}BIO-ANIMAL/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`;
-      promises.push(fetchText(url).then(r => ({
-        categoria: "rastreios",
-        numero: n,
-        ...r
-      })));
+      promises.push(
+        fetchText(url).then(text => {
+          if (text) {
+            resultado.rastreios[n] = text;
+            resultado.total_arquivos++;
+          }
+        })
+      );
     });
 
-    // 🔹 Sistemas + Base + Pares
+    // 🔹 Sistemas
     sistemas.forEach(obj => {
 
       if (!obj || typeof obj.sistema === "undefined") return;
 
-      // Buscar SISTEMA-X.md
-      const sistemaUrl = `${BASE}BIO-ANIMAL/SISTEMAS/SISTEMA-${obj.sistema}.md`;
+      const sistemaId = obj.sistema;
 
-      promises.push(fetchText(sistemaUrl).then(r => ({
-        categoria: "sistema_base",
-        sistema: obj.sistema,
-        ...r
-      })));
+      resultado.sistemas[sistemaId] = {
+        base: null,
+        pares: {}
+      };
 
-      // Buscar pares
+      // Base do sistema
+      const sistemaUrl = `${BASE}BIO-ANIMAL/SISTEMAS/SISTEMA-${sistemaId}.md`;
+
+      promises.push(
+        fetchText(sistemaUrl).then(text => {
+          if (text) {
+            resultado.sistemas[sistemaId].base = text;
+            resultado.total_arquivos++;
+          }
+        })
+      );
+
+      // Pares
       if (Array.isArray(obj.pares)) {
         obj.pares.forEach(par => {
-          const parUrl = `${BASE}BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${obj.sistema}-${par}.md`;
-          promises.push(fetchText(parUrl).then(r => ({
-            categoria: "sistema_par",
-            sistema: obj.sistema,
-            par,
-            ...r
-          })));
+          const parUrl = `${BASE}BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${sistemaId}-${par}.md`;
+
+          promises.push(
+            fetchText(parUrl).then(text => {
+              if (text) {
+                resultado.sistemas[sistemaId].pares[par] = text;
+                resultado.total_arquivos++;
+              }
+            })
+          );
         });
       }
 
     });
 
-    const resultados = await Promise.all(promises);
+    await Promise.all(promises);
 
-    return res.status(200).json({
-      total: resultados.length,
-      resultados
-    });
+    return res.status(200).json(resultado);
 
   } catch (error) {
 
