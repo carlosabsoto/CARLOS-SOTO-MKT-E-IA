@@ -18,5 +18,5 @@ export default {
     `ESPIRITOS/MIASMAS/MIASMA-${n}.txt`,
 
   mantras: (n) =>
-    `ESPIRITOS/MANTRAS/MANTRA-${n}.txt`
+    `ESPIRITOS/MANTRAS/MANTRA-${n}.md`
 }
