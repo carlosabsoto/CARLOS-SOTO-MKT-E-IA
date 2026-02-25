@@ -62,19 +62,32 @@ export default async function handler(req, res) {
     );
   });
 
-  // 🔹 Sistemas + Pares
-  sistemas.forEach(obj => {
-    obj.pares.forEach(par => {
-      const url = `${BASE}BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${obj.sistema}-${par}.md`;
-      promises.push(
-        fetchText(url).then(r => ({
-          categoria: "sistemas",
-          sistema: obj.sistema,
-          par,
-          ...r
-        }))
-      );
-    });
+// 🔹 Sistemas + Nome do Sistema + Pares
+sistemas.forEach(obj => {
+
+  // 1️⃣ Buscar conteúdo do SISTEMA-X.md
+  const sistemaUrl = `${BASE}BIO-ANIMAL/SISTEMAS/SISTEMA-${obj.sistema}.md`;
+
+  promises.push(
+    fetchText(sistemaUrl).then(r => ({
+      categoria: "sistema_base",
+      sistema: obj.sistema,
+      ...r
+    }))
+  );
+
+  // 2️⃣ Buscar todos os pares do sistema
+  obj.pares.forEach(par => {
+    const parUrl = `${BASE}BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${obj.sistema}-${par}.md`;
+
+    promises.push(
+      fetchText(parUrl).then(r => ({
+        categoria: "sistema_par",
+        sistema: obj.sistema,
+        par,
+        ...r
+      }))
+    );
   });
 
   // 🔹 Mantras
