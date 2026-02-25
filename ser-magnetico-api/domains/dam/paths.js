@@ -12,8 +12,5 @@ export default {
     `DAM/DESATIVACOES/DESATIVACAO-${n}.txt`,
 
   ativacoes: (n) =>
-    `DAM/ATIVACOES/ATIVACAO-${n}.txt`,
-
-  mantras: (tipo) =>
-    `DAM/MANTRAS/${tipo}`
+    `DAM/ATIVACOES/ATIVACAO-${n}.txt`
 }
