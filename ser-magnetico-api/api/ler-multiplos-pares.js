@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     // 🔥 Execução paralela real
     const requests = pares.map(par => {
-      const url = `${baseUrl}PAR-SISTEMA-${sistema}-${par}.txt`;
+      const url = `${baseUrl}PAR-SISTEMA-${sistema}-${par}.md`;
       return fetch(url).then(r => {
         if (!r.ok) return { par, erro: "Arquivo não encontrado" };
         return r.text().then(text => ({ par, conteudo: text }));
