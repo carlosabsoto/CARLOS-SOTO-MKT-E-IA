@@ -1,37 +1,98 @@
 export default async function handler(req, res) {
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { sistema, pares } = req.body;
+  const {
+    emocionais = [],
+    reservatorios = [],
+    rastreios = [],
+    sistemas = [],
+    mantras = []
+  } = req.body;
 
-  if (!sistema || !Array.isArray(pares)) {
-    return res.status(400).json({ error: 'Parâmetros inválidos' });
-  }
+  const BASE = "https://raw.githubusercontent.com/Carlos-Soto-MKT/IAs-Ser-Magnetico/main/";
 
-  try {
+  const fetchText = async (url) => {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return { erro: "Arquivo não encontrado" };
+      return { conteudo: await r.text() };
+    } catch {
+      return { erro: "Erro ao consultar GitHub" };
+    }
+  };
 
-    const baseUrl = "https://raw.githubusercontent.com/Carlos-Soto-MKT/IAs-Ser-Magnetico/main/BIO-ANIMAL/SISTEMAS/PARES/";
+  const promises = [];
 
-    // 🔥 Execução paralela real
-    const requests = pares.map(par => {
-      const url = `${baseUrl}PAR-SISTEMA-${sistema}-${par}.md`;
-      return fetch(url).then(r => {
-        if (!r.ok) return { par, erro: "Arquivo não encontrado" };
-        return r.text().then(text => ({ par, conteudo: text }));
-      });
+  // 🔹 Emocionais
+  emocionais.forEach(n => {
+    const url = `${BASE}BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`;
+    promises.push(
+      fetchText(url).then(r => ({
+        categoria: "emocionais",
+        numero: n,
+        ...r
+      }))
+    );
+  });
+
+  // 🔹 Reservatórios
+  reservatorios.forEach(n => {
+    const url = `${BASE}BIO-ANIMAL/RESERVATORIOS/RESERVATORIO-${n}.md`;
+    promises.push(
+      fetchText(url).then(r => ({
+        categoria: "reservatorios",
+        numero: n,
+        ...r
+      }))
+    );
+  });
+
+  // 🔹 Rastreio Geral
+  rastreios.forEach(n => {
+    const url = `${BASE}BIO-ANIMAL/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`;
+    promises.push(
+      fetchText(url).then(r => ({
+        categoria: "rastreios",
+        numero: n,
+        ...r
+      }))
+    );
+  });
+
+  // 🔹 Sistemas + Pares
+  sistemas.forEach(obj => {
+    obj.pares.forEach(par => {
+      const url = `${BASE}BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${obj.sistema}-${par}.md`;
+      promises.push(
+        fetchText(url).then(r => ({
+          categoria: "sistemas",
+          sistema: obj.sistema,
+          par,
+          ...r
+        }))
+      );
     });
+  });
 
-    const resultados = await Promise.all(requests);
+  // 🔹 Mantras
+  mantras.forEach(tipo => {
+    const url = `${BASE}DAM/MANTRAS/MANTRA-${tipo}.txt`;
+    promises.push(
+      fetchText(url).then(r => ({
+        categoria: "mantras",
+        tipo,
+        ...r
+      }))
+    );
+  });
 
-    return res.status(200).json({
-      sistema,
-      total: resultados.length,
-      resultados
-    });
+  const resultados = await Promise.all(promises);
 
-  } catch (error) {
-    return res.status(500).json({ error: 'Erro interno', detalhe: error.message });
-  }
+  return res.status(200).json({
+    total: resultados.length,
+    resultados
+  });
 }
