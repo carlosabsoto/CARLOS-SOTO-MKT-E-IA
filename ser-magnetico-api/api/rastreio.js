@@ -1,6 +1,8 @@
 import espiritosPaths from "../domains/espiritos-miasmas/paths.js";
 import { aggregateData } from "../services/aggregator.js";
 import { validateRequest } from "../services/validator.js";
+import espiritosPaths from "../domains/espiritos-miasmas/paths.js";
+import damPaths from "../domains/dam/paths.js";
 
 export default async function handler(req, res) {
   try {
@@ -12,16 +14,22 @@ export default async function handler(req, res) {
 
     const { curso, dados } = req.body;
 
-    if (curso !== "espiritos-miasmas") {
+    const domains = {
+      "espiritos-miasmas": espiritosPaths, 
+      "dam": damPaths 
+    };
+
+    if (!domains[curso]) {
       return res.status(400).json({ erro: "Curso inválido" });
     }
-
-    const resultado = await aggregateData(dados, espiritosPaths);
+    
+    const resultado = await aggregateData(dados, domains[curso]);
 
     return res.status(200).json({
       curso,
       resultado
     });
+    
   } catch (error) {
     return res.status(500).json({
       erro: error.message
