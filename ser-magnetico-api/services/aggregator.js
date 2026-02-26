@@ -6,20 +6,34 @@ export async function aggregateData(dados, paths) {
 
   for (const categoria in dados) {
 
-    if (!paths[categoria]) {
-      console.warn(`Categoria ignorada: ${categoria}`);
-      continue;
-    }
+    // ignora categoria que não existe no domínio
+    if (!paths[categoria]) continue;
 
     if (!Array.isArray(dados[categoria])) continue;
 
     resultado[categoria] = {};
 
     for (const item of dados[categoria]) {
-      const path = paths[categoria](item);
+
+      let path;
+
+      // 🔹 Se for objeto (ex: paresSistema)
+      if (typeof item === "object" && item !== null) {
+        path = paths[categoria](item);
+        resultado[categoria][`${item.sistema}-${item.par}`] = null;
+      } 
+      // 🔹 Se for número simples
+      else {
+        path = paths[categoria](item);
+        resultado[categoria][item] = null;
+      }
 
       const promise = fetchFromGitHub(path).then((conteudo) => {
-        resultado[categoria][item] = conteudo;
+        if (typeof item === "object" && item !== null) {
+          resultado[categoria][`${item.sistema}-${item.par}`] = conteudo;
+        } else {
+          resultado[categoria][item] = conteudo;
+        }
       });
 
       promises.push(promise);
