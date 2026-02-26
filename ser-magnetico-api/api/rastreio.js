@@ -1,9 +1,9 @@
 import espiritosPaths from "../domains/espiritos-miasmas/paths.js";
 import damPaths from "../domains/dam/paths.js";
-
 import { aggregateData } from "../services/aggregator.js";
 import { validateRequest } from "../services/validator.js";
 import { fetchFromGitHub } from "../services/githubService.js";
+import bioHumanoPaths from "../domains/bio-humano/paths.js";
 
 export default async function handler(req, res) {
   try {
@@ -18,9 +18,10 @@ export default async function handler(req, res) {
     // 🔹 DOMÍNIOS DINÂMICOS
     const domains = {
       "espiritos-miasmas": espiritosPaths,
-      "dam": damPaths
+      "dam": damPaths,
+      "bio-humano": bioHumanoPaths
     };
-
+    
     if (!domains[curso]) {
       return res.status(400).json({ erro: "Curso inválido" });
     }
