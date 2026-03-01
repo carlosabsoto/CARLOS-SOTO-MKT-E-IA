@@ -4,13 +4,17 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "Método não permitido. Use POST."
+      error: "Use POST"
     });
   }
 
   try {
 
-    const { titulo = "Devolutiva", conteudo = "Conteúdo da devolutiva" } = req.body || {};
+    let { titulo = "Devolutiva", conteudo = "Conteúdo da devolutiva" } = req.body || {};
+
+    // converter UTF-8 → Latin1
+    titulo = Buffer.from(titulo, "utf8").toString("latin1");
+    conteudo = Buffer.from(conteudo, "utf8").toString("latin1");
 
     const pdf = `
 %PDF-1.1
@@ -60,7 +64,7 @@ startxref
 
   } catch (error) {
 
-    console.error("Erro ao gerar PDF:", error);
+    console.error(error);
 
     return res.status(500).json({
       error: "Erro ao gerar PDF"
