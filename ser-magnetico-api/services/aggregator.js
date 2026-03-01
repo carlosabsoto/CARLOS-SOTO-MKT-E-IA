@@ -1,24 +1,18 @@
 import { fetchFromGitHub } from "./githubService.js";
-
-/**
- * Agregador determinístico de conteúdo
- * Recebe os dados do rastreio e resolve os paths do domínio
- */
+import { runConcurrent } from "./concurrentQueue.js";
 
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
-  const promises = [];
+  const tasks = [];
 
   for (const categoria in dados) {
 
-    // 🔹 resolve função de path (normalizada)
     const pathFunction = resolvePath
       ? resolvePath(categoria)
       : paths[categoria];
 
     if (!pathFunction) continue;
-
     if (!Array.isArray(dados[categoria])) continue;
 
     resultado[categoria] = {};
@@ -28,7 +22,6 @@ export async function aggregateData(dados, paths, resolvePath) {
       let path;
       let key;
 
-      // 🔹 objeto (ex: paresSistema)
       if (typeof item === "object" && item !== null) {
 
         path = pathFunction(item);
@@ -43,19 +36,27 @@ export async function aggregateData(dados, paths, resolvePath) {
 
       resultado[categoria][key] = null;
 
-      const promise = fetchFromGitHub(path)
-        .then((conteudo) => {
-          resultado[categoria][key] = conteudo;
-        })
-        .catch((error) => {
-          resultado[categoria][key] = `ERRO: ${error.message}`;
-        });
+      tasks.push(async () => {
 
-      promises.push(promise);
+        try {
+
+          const conteudo = await fetchFromGitHub(path);
+          resultado[categoria][key] = conteudo;
+
+        } catch (error) {
+
+          resultado[categoria][key] =
+            `ERRO: ${error.message}`;
+
+        }
+
+      });
+
     }
   }
 
-  await Promise.all(promises);
+  // 🔹 executa downloads com limite de concorrência
+  await runConcurrent(tasks, 5);
 
   return resultado;
 }
