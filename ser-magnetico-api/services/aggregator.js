@@ -1,13 +1,23 @@
 import { fetchFromGitHub } from "./githubService.js";
 
-export async function aggregateData(dados, paths) {
+/**
+ * Agregador determinístico de conteúdo
+ * Recebe os dados do rastreio e resolve os paths do domínio
+ */
+
+export async function aggregateData(dados, paths, resolvePath) {
+
   const resultado = {};
   const promises = [];
 
   for (const categoria in dados) {
 
-    // ignora categoria que não existe no domínio
-    if (!paths[categoria]) continue;
+    // 🔹 resolve função de path (normalizada)
+    const pathFunction = resolvePath
+      ? resolvePath(categoria)
+      : paths[categoria];
+
+    if (!pathFunction) continue;
 
     if (!Array.isArray(dados[categoria])) continue;
 
@@ -16,25 +26,30 @@ export async function aggregateData(dados, paths) {
     for (const item of dados[categoria]) {
 
       let path;
+      let key;
 
-      // 🔹 Se for objeto (ex: paresSistema)
+      // 🔹 objeto (ex: paresSistema)
       if (typeof item === "object" && item !== null) {
-        path = paths[categoria](item);
-        resultado[categoria][`${item.sistema}-${item.par}`] = null;
-      } 
-      // 🔹 Se for número simples
-      else {
-        path = paths[categoria](item);
-        resultado[categoria][item] = null;
+
+        path = pathFunction(item);
+        key = `${item.sistema}-${item.par}`;
+
+      } else {
+
+        path = pathFunction(item);
+        key = item;
+
       }
 
-      const promise = fetchFromGitHub(path).then((conteudo) => {
-        if (typeof item === "object" && item !== null) {
-          resultado[categoria][`${item.sistema}-${item.par}`] = conteudo;
-        } else {
-          resultado[categoria][item] = conteudo;
-        }
-      });
+      resultado[categoria][key] = null;
+
+      const promise = fetchFromGitHub(path)
+        .then((conteudo) => {
+          resultado[categoria][key] = conteudo;
+        })
+        .catch((error) => {
+          resultado[categoria][key] = `ERRO: ${error.message}`;
+        });
 
       promises.push(promise);
     }
