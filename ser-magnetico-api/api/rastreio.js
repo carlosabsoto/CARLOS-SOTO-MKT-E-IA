@@ -1,14 +1,20 @@
-import espiritosPaths from "../domains/espiritos-miasmas/paths.js";
-import damPaths from "../domains/dam/paths.js";
+import espiritosPaths, { resolvePath as resolveEspiritos } from "../domains/espiritos-miasmas/paths.js";
+import damPaths, { resolvePath as resolveDam } from "../domains/dam/paths.js";
+import bioHumanoPaths, { resolvePath as resolveBioHumano } from "../domains/bio-humano/paths.js";
+
 import { aggregateData } from "../services/aggregator.js";
 import { validateRequest } from "../services/validator.js";
 import { fetchFromGitHub } from "../services/githubService.js";
-import bioHumanoPaths from "../domains/bio-humano/paths.js";
 
 export default async function handler(req, res) {
+
   try {
+
     if (req.method !== "POST") {
-      return res.status(405).json({ erro: "Método não permitido" });
+      return res.status(405).json({
+        success: false,
+        erro: "Método não permitido"
+      });
     }
 
     validateRequest(req.body);
@@ -17,21 +23,38 @@ export default async function handler(req, res) {
 
     // 🔹 DOMÍNIOS DINÂMICOS
     const domains = {
-      "espiritos-miasmas": espiritosPaths,
-      "dam": damPaths,
-      "bio-humano": bioHumanoPaths
+      "espiritos-miasmas": {
+        paths: espiritosPaths,
+        resolve: resolveEspiritos
+      },
+      "dam": {
+        paths: damPaths,
+        resolve: resolveDam
+      },
+      "bio-humano": {
+        paths: bioHumanoPaths,
+        resolve: resolveBioHumano
+      }
     };
-    
-    if (!domains[curso]) {
-      return res.status(400).json({ erro: "Curso inválido" });
+
+    const domain = domains[curso];
+
+    if (!domain) {
+      return res.status(400).json({
+        success: false,
+        erro: "Curso inválido"
+      });
     }
 
     // 🔥 CURSO DAM (tratamento especial)
     if (curso === "dam") {
 
-      const resultado = await aggregateData(dados, damPaths);
+      const resultado = await aggregateData(
+        dados,
+        domain.paths,
+        domain.resolve
+      ) || {};
 
-      // Mantras fixos fora do agregador
       const mantraAtivacao = await fetchFromGitHub(
         "DAM/MANTRAS/MANTRA-ATIVACAO.txt"
       );
@@ -41,26 +64,38 @@ export default async function handler(req, res) {
       );
 
       return res.status(200).json({
+        success: true,
         curso,
-        mantraAtivacao,
         resultado,
-        mantraDesativacao
+        mantras: {
+          ativacao: mantraAtivacao,
+          desativacao: mantraDesativacao
+        }
       });
     }
 
-    // 🔹 OUTROS CURSOS (padrão agregador)
-    const resultado = await aggregateData(dados, domains[curso]);
+    // 🔹 OUTROS CURSOS
+    const resultado = await aggregateData(
+      dados,
+      domain.paths,
+      domain.resolve
+    ) || {};
 
     return res.status(200).json({
+      success: true,
       curso,
       resultado
     });
 
   } catch (error) {
+
     console.error(error);
 
     return res.status(500).json({
+      success: false,
       erro: error.message
     });
+
   }
+
 }
