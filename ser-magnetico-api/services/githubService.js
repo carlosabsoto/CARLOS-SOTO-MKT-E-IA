@@ -1,12 +1,44 @@
 const BASE_URL =
   "https://raw.githubusercontent.com/Carlos-Soto-MKT/IAs-Ser-Magnetico/refs/heads/main/";
 
-export async function fetchFromGitHub(path) {
-  const response = await fetch(BASE_URL + path);
+/**
+ * Cache simples em memória
+ * Evita múltiplas chamadas ao mesmo arquivo
+ */
+const cache = new Map();
 
-  if (!response.ok) {
-    throw new Error(`Erro ao buscar ${path}`);
+
+export async function fetchFromGitHub(path) {
+
+  if (!path) {
+    throw new Error("Path inválido");
   }
 
-  return await response.text();
+  const normalizedPath = path.trim();
+
+  // 🔹 CACHE HIT
+  if (cache.has(normalizedPath)) {
+    return cache.get(normalizedPath);
+  }
+
+  const url = BASE_URL + normalizedPath;
+
+  let response;
+
+  try {
+    response = await fetch(url);
+  } catch (error) {
+    throw new Error(`Erro de conexão ao buscar ${normalizedPath}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar ${normalizedPath} (${response.status})`);
+  }
+
+  const text = await response.text();
+
+  // 🔹 salva no cache
+  cache.set(normalizedPath, text);
+
+  return text;
 }
