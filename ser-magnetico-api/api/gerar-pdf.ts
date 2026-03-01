@@ -3,21 +3,18 @@ export const runtime = "nodejs";
 export default async function handler(req, res) {
 
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Use POST"
-    });
+    return res.status(405).json({ error: "Use POST" });
   }
 
   try {
 
     let { titulo = "Devolutiva", conteudo = "Conteúdo da devolutiva" } = req.body || {};
 
-    // converter UTF-8 → Latin1
+    // converter para latin1
     titulo = Buffer.from(titulo, "utf8").toString("latin1");
     conteudo = Buffer.from(conteudo, "utf8").toString("latin1");
 
-    const pdf = `
-%PDF-1.1
+    const pdf = `%PDF-1.1
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
@@ -30,7 +27,7 @@ endobj
 /Resources << /Font << /F1 5 0 R >> >> >>
 endobj
 4 0 obj
-<< /Length 120 >>
+<< /Length 100 >>
 stream
 BT
 /F1 24 Tf
@@ -46,27 +43,25 @@ endobj
 endobj
 xref
 0 6
-0000000000 65535 f
+0000000000 65535 f 
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
 9
-%%EOF
-`;
+%%EOF`;
+
+    const buffer = Buffer.from(pdf, "latin1");
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=devolutiva.pdf"
-    );
+    res.setHeader("Content-Disposition", "attachment; filename=devolutiva.pdf");
 
-    return res.status(200).send(pdf);
+    res.status(200).send(buffer);
 
   } catch (error) {
 
     console.error(error);
 
-    return res.status(500).json({
+    res.status(500).json({
       error: "Erro ao gerar PDF"
     });
 
