@@ -11,48 +11,41 @@ export default async function handler(req, res) {
 
   try {
 
-    const { titulo, conteudo } = req.body;
+    const { titulo = "Devolutiva", conteudo = "" } = req.body || {};
 
     const html = `
     <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body{
-            font-family: Arial;
-            padding:40px;
-          }
-          h1{
-            text-align:center;
-          }
-          p{
-            font-size:18px;
-          }
-        </style>
-      </head>
-
-      <body>
-
-        <h1>${titulo}</h1>
-
-        <p>${conteudo}</p>
-
-      </body>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body {
+          font-family: Arial;
+          padding: 40px;
+        }
+        h1 {
+          text-align: center;
+        }
+        p {
+          font-size: 18px;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>${titulo}</h1>
+      <p>${conteudo}</p>
+    </body>
     </html>
     `;
 
     const browser = await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless
+      headless: true
     });
 
     const page = await browser.newPage();
 
-    await page.setContent(html, {
-      waitUntil: "networkidle0"
-    });
+    await page.setContent(html);
 
     const pdf = await page.pdf({
       format: "A4",
@@ -62,6 +55,7 @@ export default async function handler(req, res) {
     await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
+
     res.setHeader(
       "Content-Disposition",
       "attachment; filename=devolutiva.pdf"
@@ -71,7 +65,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("PDF ERROR:", error);
 
     res.status(500).json({
       error: "Erro ao gerar PDF"
