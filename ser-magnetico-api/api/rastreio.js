@@ -53,14 +53,15 @@ export default async function handler(req, res) {
         paths: damPaths,
         resolve: resolveDam
       },
-      "bio-humano": {
-        paths: bioHumanoPaths,
-        resolve: resolveBioHumano
-      },
       "bio-animal": {
         paths: bioAnimalPaths,
         resolve: resolveBioAnimal
+      },
+      "bio-humano": {
+        paths: bioHumanoPaths,
+        resolve: resolveBioHumano
       }
+
     };
 
     const domain = domains[cursoKey];
