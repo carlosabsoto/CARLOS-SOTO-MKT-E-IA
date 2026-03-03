@@ -45,21 +45,27 @@ export default async function handler(req, res) {
         erro: "Nenhum dado de rastreio informado"
       });
     }
-
-    // 🔹 normalização do curso
-    const rawCurso = String(curso)
+    
+        // 🔹 normalização do curso
+    const rawCurso = String(curso || "")
       .trim()
       .toLowerCase()
-      .replaceAll("_", "-")
-      .replaceAll(" ", "-");
-
+      .replace(/[_\s]/g, "-")
+      .replace(/--+/g, "-");
+    
     const cursoMap = {
-      "dam": "dam",
+      dam: "dam",
+    
       "bio-humano": "bio-humano",
+      biohumano: "bio-humano",
+    
       "bio-animal": "bio-animal",
-      "espiritos-miasmas": "espiritos-miasmas"
+      bioanimal: "bio-animal",
+    
+      "espiritos-miasmas": "espiritos-miasmas",
+      espiritosmiasmas: "espiritos-miasmas"
     };
-
+    
     const cursoKey = cursoMap[rawCurso];
 
     // 🔹 definição de domínios
