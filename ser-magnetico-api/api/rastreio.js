@@ -1,7 +1,7 @@
 import espiritosPaths, { resolvePath as resolveEspiritos } from "../domains/espiritos-miasmas/paths.js";
 import damPaths, { resolvePath as resolveDam } from "../domains/dam/paths.js";
 import bioHumanoPaths, { resolvePath as resolveBioHumano } from "../domains/bio-humano/paths.js";
-//import bioAnimalPaths, { resolvePath as resolveBioAnimal } from "../domains/bio-animal/paths.js";
+import bioAnimalPaths, { resolvePath as resolveBioAnimal } from "../domains/bio-animal/paths.js";
 
 import { aggregateData } from "../services/aggregator.js";
 import { validateRequest } from "../services/validator.js";
@@ -76,12 +76,10 @@ export default async function handler(req, res) {
         paths: bioHumanoPaths,
         resolve: resolveBioHumano
       },
-      /*
       "bio-animal": {
         paths: bioAnimalPaths,
         resolve: resolveBioAnimal
       }
-      */
     };
 
     const domain = domains[cursoKey];
