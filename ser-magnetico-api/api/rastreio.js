@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
 
-    // 🔹 Permitir apenas POST
+    // 🔹 aceitar apenas POST
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
@@ -19,40 +19,40 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔹 Log completo para debug
+    // 🔹 log completo para debug
     console.log("BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
 
-    // 🔹 Validação básica
-    validateRequest(req.body);
+    // 🔹 garantir body válido
+    const body = req.body || {};
 
-    // 🔹 Extrair dados
-    let { curso, dados } = req.body || {};
+    let { curso, dados } = body;
 
-    if (!dados || Object.keys(dados).length === 0) {
-    return res.status(400).json({
-      success: false,
-      erro: "Nenhum dado de rastreio informado"
-    });
-    }
-
-    // 🔹 Curso padrão caso não venha no body
+    // 🔹 curso padrão
     curso = curso || "bio-animal";
 
-    if (!dados) {
+    // 🔹 validar dados
+    if (!dados || typeof dados !== "object") {
       return res.status(400).json({
         success: false,
-        erro: "Campo 'dados' não informado"
+        erro: "Campo 'dados' inválido ou ausente"
       });
     }
 
-    // 🔹 Normalização segura do curso
+    // 🔹 se vier vazio
+    if (Object.keys(dados).length === 0) {
+      return res.status(400).json({
+        success: false,
+        erro: "Nenhum dado de rastreio informado"
+      });
+    }
+
+    // 🔹 normalização do curso
     const rawCurso = String(curso)
       .trim()
       .toLowerCase()
       .replaceAll("_", "-")
       .replaceAll(" ", "-");
 
-    // 🔹 Mapeamento oficial de cursos
     const cursoMap = {
       "dam": "dam",
       "bio-humano": "bio-humano",
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
     const cursoKey = cursoMap[rawCurso];
 
-    // 🔹 Definição dos domínios
+    // 🔹 definição de domínios
     const domains = {
       "espiritos-miasmas": {
         paths: espiritosPaths,
@@ -84,10 +84,9 @@ export default async function handler(req, res) {
 
     const domain = domains[cursoKey];
 
-    // 🔹 Curso inválido
     if (!domain) {
 
-      console.error("Curso recebido inválido:", rawCurso);
+      console.error("Curso inválido recebido:", rawCurso);
 
       return res.status(400).json({
         success: false,
@@ -96,7 +95,7 @@ export default async function handler(req, res) {
 
     }
 
-    // 🔥 CURSO DAM (tratamento especial)
+    // 🔥 DAM possui tratamento especial
     if (cursoKey === "dam") {
 
       const resultado = await aggregateData(
@@ -105,13 +104,24 @@ export default async function handler(req, res) {
         domain.resolve
       ) || {};
 
-      const mantraAtivacao = await fetchFromGitHub(
-        "DAM/MANTRAS/MANTRA-ATIVACAO.txt"
-      );
+      let mantraAtivacao = "";
+      let mantraDesativacao = "";
 
-      const mantraDesativacao = await fetchFromGitHub(
-        "DAM/MANTRAS/MANTRA-DESATIVACAO.txt"
-      );
+      try {
+
+        mantraAtivacao = await fetchFromGitHub(
+          "DAM/MANTRAS/MANTRA-ATIVACAO.txt"
+        );
+
+        mantraDesativacao = await fetchFromGitHub(
+          "DAM/MANTRAS/MANTRA-DESATIVACAO.txt"
+        );
+
+      } catch (err) {
+
+        console.error("Erro ao buscar mantras:", err);
+
+      }
 
       return res.status(200).json({
         success: true,
@@ -125,12 +135,28 @@ export default async function handler(req, res) {
 
     }
 
-    // 🔹 Processamento padrão (Bio Humano / Bio Animal / Espíritos)
-    const resultado = await aggregateData(
-      dados,
-      domain.paths,
-      domain.resolve
-    ) || {};
+    // 🔹 execução padrão
+    let resultado = {};
+
+    try {
+
+      resultado = await aggregateData(
+        dados,
+        domain.paths,
+        domain.resolve
+      ) || {};
+
+    } catch (err) {
+
+      console.error("Erro no aggregateData:", err);
+
+      return res.status(500).json({
+        success: false,
+        erro: "Erro ao processar os dados de rastreio",
+        retry: true
+      });
+
+    }
 
     return res.status(200).json({
       success: true,
@@ -140,11 +166,11 @@ export default async function handler(req, res) {
 
   } catch (error) {
 
-    console.error("Erro no rastreio:", error);
+    console.error("Erro inesperado no rastreio:", error);
 
-    return res.status(200).json({
+    return res.status(500).json({
       success: false,
-      erro: "Falha ao acessar a base de dados",
+      erro: "Erro interno do servidor",
       retry: true
     });
 
