@@ -22,6 +22,27 @@ export default async function handler(req, res) {
 
     const { curso, dados } = req.body;
 
+    // 🔹 NORMALIZAÇÃO DO CURSO (evita erro de formatação)
+    const rawCurso = String(curso ?? "").trim().toLowerCase();
+
+    const cursoMap = {
+      "dam": "dam",
+
+      "bio-humano": "bio-humano",
+      "bio humano": "bio-humano",
+      "bio_humano": "bio-humano",
+
+      "bio-animal": "bio-animal",
+      "bio animal": "bio-animal",
+      "bio_animal": "bio-animal",
+
+      "espiritos-miasmas": "espiritos-miasmas",
+      "espiritos miasmas": "espiritos-miasmas",
+      "espiritos_miasmas": "espiritos-miasmas"
+    };
+
+    const cursoKey = cursoMap[rawCurso];
+
     // 🔹 DOMÍNIOS DINÂMICOS
     const domains = {
       "espiritos-miasmas": {
@@ -42,17 +63,19 @@ export default async function handler(req, res) {
       }
     };
 
-    const domain = domains[curso];
+    const domain = domains[cursoKey];
 
     if (!domain) {
+      console.error("Curso recebido inválido:", rawCurso);
+
       return res.status(400).json({
         success: false,
-        erro: "Curso inválido"
+        erro: `Curso inválido: ${rawCurso}`
       });
     }
 
     // 🔥 CURSO DAM (tratamento especial)
-    if (curso === "dam") {
+    if (cursoKey === "dam") {
 
       const resultado = await aggregateData(
         dados,
@@ -70,7 +93,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        curso,
+        curso: cursoKey,
         resultado,
         mantras: {
           ativacao: mantraAtivacao,
@@ -79,7 +102,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔹 OUTROS CURSOS (BIO HUMANO, BIO ANIMAL, ESPÍRITOS)
+    // 🔹 OUTROS CURSOS
     const resultado = await aggregateData(
       dados,
       domain.paths,
@@ -88,7 +111,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      curso,
+      curso: cursoKey,
       resultado
     });
 
