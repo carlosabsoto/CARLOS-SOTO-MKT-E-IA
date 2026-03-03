@@ -1,29 +1,41 @@
 import config from "./config.js";
 
+const base = "BIO-ANIMAL";
+
 const paths = {
 
   paresEmocionais: (n) =>
-    `BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`,
+    `${base}/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`,
 
   reservatorios: (n) =>
-    `BIO-ANIMAL/RESERVATORIOS/RESERVATORIO-${n}.md`,
+    `${base}/RESERVATORIOS/RESERVATORIO-${n}.md`,
 
   rastreioGeral: (n) =>
-    `BIO-ANIMAL/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`,
+    `${base}/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`,
 
   sistemas: (n) =>
-    `BIO-ANIMAL/SISTEMAS/SISTEMA-${n}.md`,
+    `${base}/SISTEMAS/SISTEMA-${n}.md`,
 
   paresSistema: ({ sistema, par }) =>
-    `BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
+    `${base}/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
 
 };
 
-export function resolvePath(tipo, numero) {
+export function resolvePath(tipo, valor) {
 
-  if (!paths[tipo]) return null;
+  const handler = paths[tipo];
 
-  return paths[tipo](numero);
+  if (!handler) {
+    console.warn("Tipo não encontrado:", tipo);
+    return null;
+  }
+
+  try {
+    return handler(valor);
+  } catch (err) {
+    console.error("Erro ao resolver path:", tipo, valor);
+    return null;
+  }
 
 }
 
