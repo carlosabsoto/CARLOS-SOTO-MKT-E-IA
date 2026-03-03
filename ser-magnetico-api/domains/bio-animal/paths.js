@@ -1,18 +1,18 @@
 export default {
 
   paresEmocionais: (n) =>
-    `BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.txt`,
+    `BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`,
 
   reservatorios: (n) =>
-    `BIO-ANIMAL/RESERVATORIOS/RESERVATORIO-${n}.txt`,
+    `BIO-ANIMAL/RESERVATORIOS/RESERVATORIO-${n}.md`,
 
   rastreioGeral: (n) =>
-    `BIO-ANIMAL/RASTREIO-GERAL/RASTREIO-GERAL-${n}.txt`,
+    `BIO-ANIMAL/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`,
 
   sistemas: (n) =>
-    `BIO-ANIMAL/SISTEMAS/SISTEMA-${n}.txt`,
+    `BIO-ANIMAL/SISTEMAS/SISTEMA-${n}.md`,
 
   paresSistema: ({ sistema, par }) =>
-    `BIO-ANIMAL/PARES-SISTEMA/PAR-SISTEMA-${sistema}-${par}.txt`
+    `BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
 
 };
