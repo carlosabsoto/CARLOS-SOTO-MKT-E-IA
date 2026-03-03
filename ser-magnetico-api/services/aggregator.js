@@ -1,62 +1,94 @@
 import { fetchFromGitHub } from "./githubService.js";
-import { runConcurrent } from "./concurrentQueue.js";
+
+/**
+ * Cache global do conteúdo carregado
+ */
+
+const repositoryCache = new Map();
+
+/**
+ * Carrega arquivo com cache
+ */
+
+async function loadFile(path) {
+
+  if (repositoryCache.has(path)) {
+    return repositoryCache.get(path);
+  }
+
+  try {
+
+    const content = await fetchFromGitHub(path);
+
+    repositoryCache.set(path, content);
+
+    return content;
+
+  } catch (err) {
+
+    console.warn("Arquivo não encontrado:", path);
+
+    return null;
+
+  }
+
+}
+
+
+/**
+ * Agregador TURBO
+ */
 
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
-  const tasks = [];
 
-  for (const categoria in dados) {
+  const categorias = Object.keys(dados);
 
-    const pathFunction = resolvePath
-      ? resolvePath(categoria)
-      : paths[categoria];
+  for (const categoria of categorias) {
 
-    if (!pathFunction) continue;
-    if (!Array.isArray(dados[categoria])) continue;
+    const handler = resolvePath(categoria);
+
+    if (!handler) {
+      console.warn("Categoria ignorada:", categoria);
+      continue;
+    }
+
+    const valores = dados[categoria];
 
     resultado[categoria] = {};
 
-    for (const item of dados[categoria]) {
+    const tasks = valores.map(async (valor) => {
 
-      let path;
-      let key;
+      try {
 
-      if (typeof item === "object" && item !== null) {
+        const path = handler(valor);
 
-        path = pathFunction(item);
-        key = `${item.sistema}-${item.par}`;
+        if (!path) return;
 
-      } else {
+        const content = await loadFile(path);
 
-        path = pathFunction(item);
-        key = item;
+        if (!content) return;
+
+        const key =
+          typeof valor === "object"
+            ? `${valor.sistema}-${valor.par}`
+            : String(valor);
+
+        resultado[categoria][key] = content;
+
+      } catch (err) {
+
+        console.error("Erro processando:", categoria, valor);
 
       }
 
-      resultado[categoria][key] = null;
+    });
 
-      tasks.push(async () => {
+    await Promise.all(tasks);
 
-        try {
-
-          const conteudo = await fetchFromGitHub(path);
-          resultado[categoria][key] = conteudo;
-
-        } catch (error) {
-
-          resultado[categoria][key] =
-            `ERRO: ${error.message}`;
-
-        }
-
-      });
-
-    }
   }
 
-  // 🔹 executa downloads com limite de concorrência
-  await runConcurrent(tasks, 5);
-
   return resultado;
+
 }
