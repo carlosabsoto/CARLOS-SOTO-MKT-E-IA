@@ -1,3 +1,5 @@
+import config from "./config.js";
+
 export default {
 
   paresEmocionais: (n) =>
@@ -16,3 +18,13 @@ export default {
     `BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
 
 };
+
+export function resolvePath(tipo, numero) {
+
+  if (!paths[tipo]) return null;
+
+  return paths[tipo](numero);
+
+}
+
+export default paths;
