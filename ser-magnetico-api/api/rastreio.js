@@ -1,7 +1,7 @@
 import espiritosPaths, { resolvePath as resolveEspiritos } from "../domains/espiritos-miasmas/paths.js";
 import damPaths, { resolvePath as resolveDam } from "../domains/dam/paths.js";
 import bioHumanoPaths, { resolvePath as resolveBioHumano } from "../domains/bio-humano/paths.js";
-import bioAnimalPaths from "../domains/bio-animal/paths.js";
+import bioAnimalPaths, { resolvePath as resolveBioAnimal } from "../domains/bio-animal/paths.js";
 
 import { aggregateData } from "../services/aggregator.js";
 import { validateRequest } from "../services/validator.js";
@@ -35,6 +35,10 @@ export default async function handler(req, res) {
       "bio-humano": {
         paths: bioHumanoPaths,
         resolve: resolveBioHumano
+      },
+      "bio-animal": {
+        paths: bioAnimalPaths,
+        resolve: resolveBioAnimal
       }
     };
 
@@ -75,7 +79,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔹 OUTROS CURSOS
+    // 🔹 OUTROS CURSOS (BIO HUMANO, BIO ANIMAL, ESPÍRITOS)
     const resultado = await aggregateData(
       dados,
       domain.paths,
@@ -88,18 +92,15 @@ export default async function handler(req, res) {
       resultado
     });
 
-  }
-  catch (error) {
+  } catch (error) {
 
-  console.error(error);
+    console.error("Erro no rastreio:", error);
 
-  return res.status(200).json({
-    success: false,
-    erro: "Falha ao acessar a base de dados",
-    retry: true
-  });
-
-}
+    return res.status(200).json({
+      success: false,
+      erro: "Falha ao acessar a base de dados",
+      retry: true
+    });
 
   }
 
