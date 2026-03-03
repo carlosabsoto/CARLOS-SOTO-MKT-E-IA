@@ -11,6 +11,7 @@ export default async function handler(req, res) {
 
   try {
 
+    // 🔹 Permitir apenas POST
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
@@ -18,18 +19,33 @@ export default async function handler(req, res) {
       });
     }
 
-    validateRequest(req.body);
+    // 🔹 Log completo para debug
     console.log("BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
 
-    let { curso, dados } = req.body;
+    // 🔹 Validação básica
+    validateRequest(req.body);
 
-    // 🔹 NORMALIZAÇÃO AUTOMÁTICA DO CURSO
-    const rawCurso = String(curso || "")
+    // 🔹 Extrair dados
+    let { curso, dados } = req.body || {};
+
+    // 🔹 Curso padrão caso não venha no body
+    curso = curso || "bio-animal";
+
+    if (!dados) {
+      return res.status(400).json({
+        success: false,
+        erro: "Campo 'dados' não informado"
+      });
+    }
+
+    // 🔹 Normalização segura do curso
+    const rawCurso = String(curso)
       .trim()
       .toLowerCase()
       .replaceAll("_", "-")
       .replaceAll(" ", "-");
 
+    // 🔹 Mapeamento oficial de cursos
     const cursoMap = {
       "dam": "dam",
       "bio-humano": "bio-humano",
@@ -39,7 +55,7 @@ export default async function handler(req, res) {
 
     const cursoKey = cursoMap[rawCurso];
 
-    // 🔹 DOMÍNIOS DINÂMICOS
+    // 🔹 Definição dos domínios
     const domains = {
       "espiritos-miasmas": {
         paths: espiritosPaths,
@@ -61,6 +77,7 @@ export default async function handler(req, res) {
 
     const domain = domains[cursoKey];
 
+    // 🔹 Curso inválido
     if (!domain) {
 
       console.error("Curso recebido inválido:", rawCurso);
@@ -101,7 +118,7 @@ export default async function handler(req, res) {
 
     }
 
-    // 🔹 OUTROS CURSOS
+    // 🔹 Processamento padrão (Bio Humano / Bio Animal / Espíritos)
     const resultado = await aggregateData(
       dados,
       domain.paths,
