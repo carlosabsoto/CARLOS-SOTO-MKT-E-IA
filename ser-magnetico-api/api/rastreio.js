@@ -87,14 +87,18 @@ export default async function handler(req, res) {
       resultado
     });
 
-  } catch (error) {
+  }
+  catch (error) {
 
-    console.error(error);
+  console.error(error);
 
-    return res.status(500).json({
-      success: false,
-      erro: error.message
-    });
+  return res.status(200).json({
+    success: false,
+    erro: "Falha ao acessar a base de dados",
+    retry: true
+  });
+
+}
 
   }
 
