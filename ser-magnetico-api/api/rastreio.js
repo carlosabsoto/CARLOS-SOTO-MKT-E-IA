@@ -20,25 +20,20 @@ export default async function handler(req, res) {
 
     validateRequest(req.body);
 
-    const { curso, dados } = req.body;
+    let { curso, dados } = req.body;
 
-    // 🔹 NORMALIZAÇÃO DO CURSO (evita erro de formatação)
-    const rawCurso = String(curso ?? "").trim().toLowerCase();
+    // 🔹 NORMALIZAÇÃO AUTOMÁTICA DO CURSO
+    const rawCurso = String(curso || "")
+      .trim()
+      .toLowerCase()
+      .replaceAll("_", "-")
+      .replaceAll(" ", "-");
 
     const cursoMap = {
       "dam": "dam",
-
       "bio-humano": "bio-humano",
-      "bio humano": "bio-humano",
-      "bio_humano": "bio-humano",
-
       "bio-animal": "bio-animal",
-      "bio animal": "bio-animal",
-      "bio_animal": "bio-animal",
-
-      "espiritos-miasmas": "espiritos-miasmas",
-      "espiritos miasmas": "espiritos-miasmas",
-      "espiritos_miasmas": "espiritos-miasmas"
+      "espiritos-miasmas": "espiritos-miasmas"
     };
 
     const cursoKey = cursoMap[rawCurso];
@@ -53,26 +48,27 @@ export default async function handler(req, res) {
         paths: damPaths,
         resolve: resolveDam
       },
-      "bio-animal": {
-        paths: bioAnimalPaths,
-        resolve: resolveBioAnimal
-      },
       "bio-humano": {
         paths: bioHumanoPaths,
         resolve: resolveBioHumano
+      },
+      "bio-animal": {
+        paths: bioAnimalPaths,
+        resolve: resolveBioAnimal
       }
-
     };
 
     const domain = domains[cursoKey];
 
     if (!domain) {
+
       console.error("Curso recebido inválido:", rawCurso);
 
       return res.status(400).json({
         success: false,
         erro: `Curso inválido: ${rawCurso}`
       });
+
     }
 
     // 🔥 CURSO DAM (tratamento especial)
@@ -101,6 +97,7 @@ export default async function handler(req, res) {
           desativacao: mantraDesativacao
         }
       });
+
     }
 
     // 🔹 OUTROS CURSOS
