@@ -76,10 +76,12 @@ export default async function handler(req, res) {
         paths: bioHumanoPaths,
         resolve: resolveBioHumano
       },
+      /*
       "bio-animal": {
         paths: bioAnimalPaths,
         resolve: resolveBioAnimal
       }
+      */
     };
 
     const domain = domains[cursoKey];
