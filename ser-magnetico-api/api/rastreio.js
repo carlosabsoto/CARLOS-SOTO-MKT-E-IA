@@ -19,6 +19,7 @@ export default async function handler(req, res) {
     }
 
     validateRequest(req.body);
+    console.log("BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
 
     let { curso, dados } = req.body;
 
