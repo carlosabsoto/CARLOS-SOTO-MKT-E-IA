@@ -1,42 +1,65 @@
-import config from "./config.js";
-
-const base = "BIO-ANIMAL";
+/**
+ * BIO ANIMAL — Paths determinísticos de conteúdo
+ * Cada função retorna exatamente o caminho do arquivo no repositório GitHub
+ */
 
 const paths = {
 
   paresEmocionais: (n) =>
-    `${base}/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`,
+    `BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`,
 
   reservatorios: (n) =>
-    `${base}/RESERVATORIOS/RESERVATORIO-${n}.md`,
+    `BIO-ANIMAL/RESERVATORIOS/RESERVATORIO-${n}.md`,
 
   rastreioGeral: (n) =>
-    `${base}/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`,
+    `BIO-ANIMAL/RASTREIO-GERAL/RASTREIO-GERAL-${n}.md`,
 
   sistemas: (n) =>
-    `${base}/SISTEMAS/SISTEMA-${n}.md`,
+    `BIO-ANIMAL/SISTEMAS/SISTEMA-${n}.md`,
 
   paresSistema: ({ sistema, par }) =>
-    `${base}/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
+    `BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
 
 };
 
-export function resolvePath(tipo, valor) {
 
-  const handler = paths[tipo];
+/**
+ * Normalização opcional de categorias
+ */
 
-  if (!handler) {
-    console.warn("Tipo não encontrado:", tipo);
-    return null;
-  }
+export const categoryMap = Object.freeze({
 
-  try {
-    return handler(valor);
-  } catch (err) {
-    console.error("Erro ao resolver path:", tipo, valor);
-    return null;
-  }
+  pares_emocionais: "paresEmocionais",
+  paresEmocionais: "paresEmocionais",
+
+  reservatorios: "reservatorios",
+
+  rastreio_geral: "rastreioGeral",
+  rastreioGeral: "rastreioGeral",
+
+  sistemas: "sistemas",
+
+  pares_sistema: "paresSistema",
+  paresSistema: "paresSistema"
+
+});
+
+
+/**
+ * Resolve a função de path a partir da categoria
+ */
+
+export function resolvePath(category) {
+
+  const normalized = categoryMap[category];
+
+  return normalized ? paths[normalized] : null;
 
 }
 
-export default paths;
+
+/**
+ * Export congelado
+ */
+
+export default Object.freeze(paths);
