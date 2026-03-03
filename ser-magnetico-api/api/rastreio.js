@@ -28,6 +28,13 @@ export default async function handler(req, res) {
     // 🔹 Extrair dados
     let { curso, dados } = req.body || {};
 
+    if (!dados || Object.keys(dados).length === 0) {
+    return res.status(400).json({
+      success: false,
+      erro: "Nenhum dado de rastreio informado"
+    });
+    }
+
     // 🔹 Curso padrão caso não venha no body
     curso = curso || "bio-animal";
 
