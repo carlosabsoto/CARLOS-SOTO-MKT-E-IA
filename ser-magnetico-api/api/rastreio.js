@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const cursoMap = {
       "dam": "dam",
       "bio-humano": "bio-humano",
-      "bio-animal": "bio-animal",
+      "bio-humano2": "bio-humano2",
       "espiritos-miasmas": "espiritos-miasmas"
     };
 
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         paths: bioHumanoPaths,
         resolve: resolveBioHumano
       },
-      "bio-animal": {
+      "bio-humano2": {
         paths: bioAnimalPaths,
         resolve: resolveBioAnimal
       }
