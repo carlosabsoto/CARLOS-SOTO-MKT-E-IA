@@ -1,6 +1,6 @@
 import config from "./config.js";
 
-export default {
+const paths = {
 
   paresEmocionais: (n) =>
     `BIO-ANIMAL/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.md`,
