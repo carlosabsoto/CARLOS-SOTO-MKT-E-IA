@@ -1,12 +1,14 @@
+import { fetchFromGitHub } from "./githubService.js";
+
 const cache = new Map();
 
-async function fetchCached(path, fetchFn) {
+async function fetchCached(path) {
 
   if (cache.has(path)) {
     return cache.get(path);
   }
 
-  const data = await fetchFn(path);
+  const data = await fetchFromGitHub(path);
 
   cache.set(path, data);
 
@@ -14,12 +16,11 @@ async function fetchCached(path, fetchFn) {
 
 }
 
-
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
 
-  const downloads = [];
+  const tasks = [];
 
   for (const categoria in dados) {
 
@@ -35,25 +36,19 @@ export async function aggregateData(dados, paths, resolvePath) {
 
       if (!path) continue;
 
-      downloads.push(
-        fetchCached(path, async (p) => {
-
-          const conteudo = await fetchFromGitHub(p);
-
-          return {
-            categoria,
-            numero,
-            conteudo
-          };
-
-        })
+      tasks.push(
+        fetchCached(path).then((conteudo) => ({
+          categoria,
+          numero,
+          conteudo
+        }))
       );
 
     }
 
   }
 
-  const responses = await Promise.all(downloads);
+  const responses = await Promise.all(tasks);
 
   for (const item of responses) {
 
