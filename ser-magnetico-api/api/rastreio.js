@@ -4,14 +4,60 @@ import bioHumanoPaths, { resolvePath as resolveBioHumano } from "../domains/bio-
 import bioAnimalPaths, { resolvePath as resolveBioAnimal } from "../domains/bio-animal/paths.js";
 
 import { aggregateData } from "../services/aggregator.js";
-import { validateRequest } from "../services/validator.js";
 import { fetchFromGitHub } from "../services/githubService.js";
+
+
+const MAX_RESPONSE_SIZE = 120000;
+
+
+function normalize(text = "") {
+  return String(text)
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+
+function limitar(texto) {
+  if (texto.length > MAX_RESPONSE_SIZE) {
+    return texto.slice(0, MAX_RESPONSE_SIZE);
+  }
+  return texto;
+}
+
+
+function consolidarConteudo(resultado, mantraAtivacao, mantraDesativacao) {
+
+  let conteudo = "";
+
+  if (mantraAtivacao) {
+    conteudo += normalize(mantraAtivacao) + "\n\n";
+  }
+
+  for (const grupo in resultado) {
+    for (const numero in resultado[grupo]) {
+
+      const texto = resultado[grupo][numero];
+
+      if (!texto) continue;
+
+      conteudo += normalize(texto) + "\n\n";
+    }
+  }
+
+  if (mantraDesativacao) {
+    conteudo += normalize(mantraDesativacao);
+  }
+
+  return limitar(conteudo);
+}
+
 
 export default async function handler(req, res) {
 
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+
   try {
 
-    // 🔹 aceitar apenas POST
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
@@ -19,18 +65,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔹 log completo para debug
     console.log("BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
 
-    // 🔹 garantir body válido
     const body = req.body || {};
-
     let { curso, dados } = body;
 
-    // 🔹 curso padrão
     curso = curso || "bio-animal";
 
-    // 🔹 validar dados
     if (!dados || typeof dados !== "object") {
       return res.status(400).json({
         success: false,
@@ -38,57 +79,65 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔹 se vier vazio
     if (Object.keys(dados).length === 0) {
       return res.status(400).json({
         success: false,
         erro: "Nenhum dado de rastreio informado"
       });
     }
-    
-        // 🔹 normalização do curso
+
+
     const rawCurso = String(curso || "")
       .trim()
       .toLowerCase()
       .replace(/[_\s]/g, "-")
       .replace(/--+/g, "-");
-    
+
+
     const cursoMap = {
       dam: "dam",
-    
+
       "bio-humano": "bio-humano",
       biohumano: "bio-humano",
-    
+
       "bio-animal": "bio-animal",
       bioanimal: "bio-animal",
-    
+
       "espiritos-miasmas": "espiritos-miasmas",
       espiritosmiasmas: "espiritos-miasmas"
     };
-    
+
+
     const cursoKey = cursoMap[rawCurso];
 
-    // 🔹 definição de domínios
+
     const domains = {
+
       "espiritos-miasmas": {
         paths: espiritosPaths,
         resolve: resolveEspiritos
       },
+
       "dam": {
         paths: damPaths,
         resolve: resolveDam
       },
+
       "bio-humano": {
         paths: bioHumanoPaths,
         resolve: resolveBioHumano
       },
+
       "bio-animal": {
         paths: bioAnimalPaths,
         resolve: resolveBioAnimal
       }
+
     };
 
+
     const domain = domains[cursoKey];
+
 
     if (!domain) {
 
@@ -101,7 +150,8 @@ export default async function handler(req, res) {
 
     }
 
-    // 🔥 DAM possui tratamento especial
+
+    // 🔥 tratamento especial DAM
     if (cursoKey === "dam") {
 
       const resultado = await aggregateData(
@@ -129,19 +179,25 @@ export default async function handler(req, res) {
 
       }
 
+
+      const conteudo = consolidarConteudo(
+        resultado,
+        mantraAtivacao,
+        mantraDesativacao
+      );
+
+
       return res.status(200).json({
         success: true,
         curso: cursoKey,
-        resultado,
-        mantras: {
-          ativacao: mantraAtivacao,
-          desativacao: mantraDesativacao
-        }
+        conteudo
       });
 
     }
 
-    // 🔹 execução padrão
+
+    // execução padrão para outros cursos
+
     let resultado = {};
 
     try {
@@ -163,6 +219,7 @@ export default async function handler(req, res) {
       });
 
     }
+
 
     return res.status(200).json({
       success: true,
