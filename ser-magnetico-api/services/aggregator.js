@@ -4,15 +4,25 @@ const cache = new Map();
 
 async function fetchCached(path) {
 
-  if (cache.has(path)) {
-    return cache.get(path);
+  try {
+
+    if (cache.has(path)) {
+      return cache.get(path);
+    }
+
+    const data = await fetchFromGitHub(path);
+
+    cache.set(path, data);
+
+    return data;
+
+  } catch (error) {
+
+    console.error("Erro ao baixar do GitHub:", path, error);
+
+    return "";
+
   }
-
-  const data = await fetchFromGitHub(path);
-
-  cache.set(path, data);
-
-  return data;
 
 }
 
@@ -32,25 +42,40 @@ export async function aggregateData(dados, paths, resolvePath) {
 
     for (const numero of valores) {
 
-      const path = resolvePath(categoria, numero, paths);
+      try {
 
-      if (!path) continue;
+        const path = resolvePath(categoria, numero, paths);
 
-      tasks.push(
-        fetchCached(path).then((conteudo) => ({
+        if (!path) {
+          console.warn("Path não encontrado:", categoria, numero);
+          continue;
+        }
+
+        const task = fetchCached(path).then((conteudo) => ({
           categoria,
           numero,
           conteudo
-        }))
-      );
+        }));
+
+        tasks.push(task);
+
+      } catch (error) {
+
+        console.error("Erro ao resolver path:", categoria, numero, error);
+
+      }
 
     }
 
   }
 
-  const responses = await Promise.all(tasks);
+  const responses = await Promise.allSettled(tasks);
 
-  for (const item of responses) {
+  for (const response of responses) {
+
+    if (response.status !== "fulfilled") continue;
+
+    const item = response.value;
 
     if (!resultado[item.categoria]) {
       resultado[item.categoria] = {};
