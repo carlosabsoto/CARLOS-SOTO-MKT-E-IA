@@ -1,91 +1,67 @@
-import { fetchFromGitHub } from "./githubService.js";
+const cache = new Map();
 
-/**
- * Cache global do conteúdo carregado
- */
+async function fetchCached(path, fetchFn) {
 
-const repositoryCache = new Map();
-
-/**
- * Carrega arquivo com cache
- */
-
-async function loadFile(path) {
-
-  if (repositoryCache.has(path)) {
-    return repositoryCache.get(path);
+  if (cache.has(path)) {
+    return cache.get(path);
   }
 
-  try {
+  const data = await fetchFn(path);
 
-    const content = await fetchFromGitHub(path);
+  cache.set(path, data);
 
-    repositoryCache.set(path, content);
-
-    return content;
-
-  } catch (err) {
-
-    console.warn("Arquivo não encontrado:", path);
-
-    return null;
-
-  }
+  return data;
 
 }
 
-
-/**
- * Agregador TURBO
- */
 
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
 
-  const categorias = Object.keys(dados);
+  const downloads = [];
 
-  for (const categoria of categorias) {
-
-    const handler = resolvePath(categoria);
-
-    if (!handler) {
-      console.warn("Categoria ignorada:", categoria);
-      continue;
-    }
+  for (const categoria in dados) {
 
     const valores = dados[categoria];
 
+    if (!Array.isArray(valores)) continue;
+
     resultado[categoria] = {};
 
-    const tasks = valores.map(async (valor) => {
+    for (const numero of valores) {
 
-      try {
+      const path = resolvePath(categoria, numero, paths);
 
-        const path = handler(valor);
+      if (!path) continue;
 
-        if (!path) return;
+      downloads.push(
+        fetchCached(path, async (p) => {
 
-        const content = await loadFile(path);
+          const conteudo = await fetchFromGitHub(p);
 
-        if (!content) return;
+          return {
+            categoria,
+            numero,
+            conteudo
+          };
 
-        const key =
-          typeof valor === "object"
-            ? `${valor.sistema}-${valor.par}`
-            : String(valor);
+        })
+      );
 
-        resultado[categoria][key] = content;
+    }
 
-      } catch (err) {
+  }
 
-        console.error("Erro processando:", categoria, valor);
+  const responses = await Promise.all(downloads);
 
-      }
+  for (const item of responses) {
 
-    });
+    if (!resultado[item.categoria]) {
+      resultado[item.categoria] = {};
+    }
 
-    await Promise.all(tasks);
+    resultado[item.categoria][item.numero] = item.conteudo;
 
   }
 
