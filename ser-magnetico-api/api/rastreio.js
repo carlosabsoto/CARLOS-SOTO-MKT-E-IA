@@ -7,48 +7,10 @@ import { aggregateData } from "../services/aggregator.js";
 import { fetchFromGitHub } from "../services/githubService.js";
 
 
-const MAX_RESPONSE_SIZE = 120000;
-
-
 function normalize(text = "") {
   return String(text)
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n");
-}
-
-
-function limitar(texto) {
-  if (texto.length > MAX_RESPONSE_SIZE) {
-    return texto.slice(0, MAX_RESPONSE_SIZE);
-  }
-  return texto;
-}
-
-
-function consolidarConteudo(resultado, mantraAtivacao, mantraDesativacao) {
-
-  let conteudo = "";
-
-  if (mantraAtivacao) {
-    conteudo += normalize(mantraAtivacao) + "\n\n";
-  }
-
-  for (const grupo in resultado) {
-    for (const numero in resultado[grupo]) {
-
-      const texto = resultado[grupo][numero];
-
-      if (!texto) continue;
-
-      conteudo += normalize(texto) + "\n\n";
-    }
-  }
-
-  if (mantraDesativacao) {
-    conteudo += normalize(mantraDesativacao);
-  }
-
-  return limitar(conteudo);
 }
 
 
@@ -70,8 +32,17 @@ export default async function handler(req, res) {
     const body = req.body || {};
     let { curso, dados } = body;
 
-    curso = curso || "bio-animal";
 
+    // 🔒 curso obrigatório
+    if (!curso) {
+      return res.status(400).json({
+        success: false,
+        erro: "Campo 'curso' é obrigatório"
+      });
+    }
+
+
+    // 🔒 validação de dados
     if (!dados || typeof dados !== "object") {
       return res.status(400).json({
         success: false,
@@ -87,7 +58,7 @@ export default async function handler(req, res) {
     }
 
 
-    const rawCurso = String(curso || "")
+    const rawCurso = String(curso)
       .trim()
       .toLowerCase()
       .replace(/[_\s]/g, "-")
@@ -95,6 +66,7 @@ export default async function handler(req, res) {
 
 
     const cursoMap = {
+
       dam: "dam",
 
       "bio-humano": "bio-humano",
@@ -105,6 +77,7 @@ export default async function handler(req, res) {
 
       "espiritos-miasmas": "espiritos-miasmas",
       espiritosmiasmas: "espiritos-miasmas"
+
     };
 
 
@@ -118,7 +91,7 @@ export default async function handler(req, res) {
         resolve: resolveEspiritos
       },
 
-      "dam": {
+      dam: {
         paths: damPaths,
         resolve: resolveDam
       },
@@ -151,53 +124,6 @@ export default async function handler(req, res) {
     }
 
 
-    // 🔥 tratamento especial DAM
-    if (cursoKey === "dam") {
-
-      const resultado = await aggregateData(
-        dados,
-        domain.paths,
-        domain.resolve
-      ) || {};
-
-      let mantraAtivacao = "";
-      let mantraDesativacao = "";
-
-      try {
-
-        mantraAtivacao = await fetchFromGitHub(
-          "DAM/MANTRAS/MANTRA-ATIVACAO.txt"
-        );
-
-        mantraDesativacao = await fetchFromGitHub(
-          "DAM/MANTRAS/MANTRA-DESATIVACAO.txt"
-        );
-
-      } catch (err) {
-
-        console.error("Erro ao buscar mantras:", err);
-
-      }
-
-
-      const conteudo = consolidarConteudo(
-        resultado,
-        mantraAtivacao,
-        mantraDesativacao
-      );
-
-
-      return res.status(200).json({
-        success: true,
-        curso: cursoKey,
-        conteudo
-      });
-
-    }
-
-
-    // execução padrão para outros cursos
-
     let resultado = {};
 
     try {
@@ -221,10 +147,70 @@ export default async function handler(req, res) {
     }
 
 
+    // 🔒 evita retorno vazio
+    if (!resultado || Object.keys(resultado).length === 0) {
+
+      console.error("Resultado vazio");
+
+      return res.status(500).json({
+        success: false,
+        erro: "Nenhum conteúdo encontrado",
+        retry: true
+      });
+
+    }
+
+
+    // 🔥 tratamento especial DAM (mantras)
+    if (cursoKey === "dam") {
+
+      let mantraAtivacao = "";
+      let mantraDesativacao = "";
+
+      try {
+
+        const [ativacao, desativacao] = await Promise.all([
+
+          fetchFromGitHub("DAM/MANTRAS/MANTRA-ATIVACAO.txt"),
+          fetchFromGitHub("DAM/MANTRAS/MANTRA-DESATIVACAO.txt")
+
+        ]);
+
+        mantraAtivacao = normalize(ativacao);
+        mantraDesativacao = normalize(desativacao);
+
+      } catch (err) {
+
+        console.error("Erro ao buscar mantras:", err);
+
+      }
+
+
+      return res.status(200).json({
+
+        success: true,
+        curso: cursoKey,
+
+        resultado,
+
+        mantras: {
+          ativacao: mantraAtivacao,
+          desativacao: mantraDesativacao
+        }
+
+      });
+
+    }
+
+
+    // 📦 retorno padrão (BIO HUMANO, BIO ANIMAL, ESPÍRITOS)
+
     return res.status(200).json({
+
       success: true,
       curso: cursoKey,
       resultado
+
     });
 
   } catch (error) {
