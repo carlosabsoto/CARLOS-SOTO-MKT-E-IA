@@ -238,13 +238,4 @@ export default async function handler(req, res) {
     });
 
   }
-
-const resposta = aggregateData(...);
-
-const tamanho = JSON.stringify(resposta).length;
-
-console.log("TAMANHO RESPOSTA:", tamanho);
-
-return res.status(200).json(resposta);
-
 }
