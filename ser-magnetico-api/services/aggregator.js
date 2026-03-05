@@ -31,6 +31,23 @@ async function fetchCached(path) {
 
 }
 
+
+function gerarChave(numero) {
+
+  if (typeof numero === "object" && numero !== null) {
+
+    if ("sistema" in numero && "par" in numero) {
+      return `${numero.sistema}-${numero.par}`;
+    }
+
+    return JSON.stringify(numero);
+  }
+
+  return numero;
+
+}
+
+
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
@@ -48,9 +65,24 @@ export async function aggregateData(dados, paths, resolvePath) {
 
       try {
 
-        let path = resolvePath(categoria, numero, paths);
+        let path;
 
-        // 🔹 se resolvePath retornar função (caso comum nos paths)
+        // 🔹 suporte para objetos (paresSistema)
+        if (typeof numero === "object" && numero !== null) {
+
+          if ("sistema" in numero && "par" in numero) {
+            path = resolvePath(categoria, numero.par, paths, numero.sistema);
+          } else {
+            path = resolvePath(categoria, numero, paths);
+          }
+
+        } else {
+
+          path = resolvePath(categoria, numero, paths);
+
+        }
+
+        // 🔹 se resolvePath retornar função
         if (typeof path === "function") {
           path = path(numero);
         }
@@ -94,7 +126,9 @@ export async function aggregateData(dados, paths, resolvePath) {
       resultado[item.categoria] = {};
     }
 
-    resultado[item.categoria][item.numero] = item.conteudo;
+    const chave = gerarChave(item.numero);
+
+    resultado[item.categoria][chave] = item.conteudo;
 
   }
 
