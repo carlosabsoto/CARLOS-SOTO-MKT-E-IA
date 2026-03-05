@@ -6,6 +6,11 @@ async function fetchCached(path) {
 
   try {
 
+    if (!path || typeof path !== "string") {
+      console.warn("Caminho inválido recebido:", path);
+      return "";
+    }
+
     if (cache.has(path)) {
       return cache.get(path);
     }
@@ -29,7 +34,6 @@ async function fetchCached(path) {
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
-
   const tasks = [];
 
   for (const categoria in dados) {
@@ -44,17 +48,22 @@ export async function aggregateData(dados, paths, resolvePath) {
 
       try {
 
-        const path = resolvePath(categoria, numero, paths);
-        
+        let path = resolvePath(categoria, numero, paths);
+
+        // 🔹 se resolvePath retornar função (caso comum nos paths)
+        if (typeof path === "function") {
+          path = path(numero);
+        }
+
         console.log("PATH RESOLVIDO:", categoria, numero, path);
-        
-        if (!path) {
-          console.warn("Path não encontrado:", categoria, numero);
+
+        if (!path || typeof path !== "string") {
+          console.warn("Path inválido:", categoria, numero, path);
           continue;
         }
-        
+
         console.log("Baixando arquivo:", path);
-        
+
         const task = fetchCached(path).then((conteudo) => ({
           categoria,
           numero,
