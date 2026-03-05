@@ -1,66 +1,49 @@
-/**
- * BIO HUMANO — Paths determinísticos de conteúdo
- * Cada função retorna exatamente o caminho do arquivo no repositório GitHub
- * Nenhuma lógica interpretativa é aplicada aqui.
- */
+export function resolvePath(categoria, numero, paths, sistema = null) {
 
-const paths = {
+  if (!categoria || !paths[categoria]) {
+    console.warn("Categoria inválida:", categoria);
+    return null;
+  }
 
-  paresEmocionais: (n) =>
-    `BIO-HUMANO/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.txt`,
+  // tratamento especial para pares de sistema
+  if (categoria === "paresSistema") {
 
-  reservatorios: (n) =>
-    `BIO-HUMANO/RESERVATORIOS/RESERVATORIO-${n}.txt`,
+    if (!sistema || !numero) {
+      console.warn("Par de sistema incompleto:", sistema, numero);
+      return null;
+    }
 
-  rastreioGeral: (n) =>
-    `BIO-HUMANO/RASTREIO-GERAL/RASTREIO-GERAL-${n}.txt`,
+    const sistemaMap = paths[categoria]?.[sistema];
 
-  sistemas: (n) =>
-    `BIO-HUMANO/SISTEMAS/SISTEMA-${n}.txt`,
+    if (!sistemaMap) {
+      console.warn("Sistema inexistente:", sistema);
+      return null;
+    }
 
-  paresSistema: ({ sistema, par }) =>
-    `BIO-HUMANO/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.txt`,
+    const path = sistemaMap[numero];
 
-  protocolos: (n) =>
-    `BIO-HUMANO/PROTOCOLOS/PROTOCOLO-${n}.md`
-};
+    if (!path) {
+      console.warn("Par inexistente:", sistema, numero);
+      return null;
+    }
 
+    return path;
+  }
 
-/**
- * Normalização opcional de categorias
- * Permite aceitar diferentes formatos vindos do JSON da Action
- */
+  // categorias normais
+  const categoriaMap = paths[categoria];
 
-export const categoryMap = Object.freeze({
-  pares_emocionais: "paresEmocionais",
-  paresEmocionais: "paresEmocionais",
+  if (!categoriaMap) {
+    console.warn("Categoria não encontrada:", categoria);
+    return null;
+  }
 
-  reservatorios: "reservatorios",
+  const path = categoriaMap[numero];
 
-  rastreio_geral: "rastreioGeral",
-  rastreioGeral: "rastreioGeral",
+  if (!path) {
+    console.warn("Número inexistente:", categoria, numero);
+    return null;
+  }
 
-  sistemas: "sistemas",
-
-  pares_sistema: "paresSistema",
-  paresSistema: "paresSistema",
-
-  protocolos: "protocolos"
-});
-
-
-/**
- * Resolve a função de path a partir da categoria recebida
- */
-
-export function resolvePath(category) {
-  const normalized = categoryMap[category];
-  return normalized ? paths[normalized] : null;
+  return path;
 }
-
-
-/**
- * Export principal congelado (imutável)
- */
-
-export default Object.freeze(paths);
