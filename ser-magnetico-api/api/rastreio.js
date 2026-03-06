@@ -32,7 +32,6 @@ export default async function handler(req, res) {
     const body = req.body || {};
     let { curso, dados } = body;
 
-
     // 🔒 curso obrigatório
     if (!curso) {
       return res.status(400).json({
@@ -40,7 +39,6 @@ export default async function handler(req, res) {
         erro: "Campo 'curso' é obrigatório"
       });
     }
-
 
     // 🔒 validação de dados
     if (!dados || typeof dados !== "object") {
@@ -56,7 +54,6 @@ export default async function handler(req, res) {
         erro: "Nenhum dado de rastreio informado"
       });
     }
-
 
     const rawCurso = String(curso)
       .trim()
@@ -190,7 +187,6 @@ export default async function handler(req, res) {
 
         success: true,
         curso: cursoKey,
-
         resultado,
 
         mantras: {
@@ -224,4 +220,5 @@ export default async function handler(req, res) {
     });
 
   }
+
 }
