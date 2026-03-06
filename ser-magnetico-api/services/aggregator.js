@@ -1,136 +1,224 @@
-import { fetchFromGitHub } from "./githubService.js";
+import espiritosPaths, { resolvePath as resolveEspiritos } from "../domains/espiritos-miasmas/paths.js";
+import damPaths, { resolvePath as resolveDam } from "../domains/dam/paths.js";
+import bioHumanoPaths, { resolvePath as resolveBioHumano } from "../domains/bio-humano/paths.js";
+import bioAnimalPaths, { resolvePath as resolveBioAnimal } from "../domains/bio-animal/paths.js";
 
-const cache = new Map();
+import { aggregateData } from "../services/aggregator.js";
+import { fetchFromGitHub } from "../services/githubService.js";
 
-async function fetchCached(path) {
 
-  if (!path || typeof path !== "string") {
-    console.warn("Caminho inválido recebido:", path);
-    return "";
-  }
-
-  if (cache.has(path)) {
-    return cache.get(path);
-  }
-
-  const data = await fetchFromGitHub(path);
-
-  cache.set(path, data);
-
-  return data;
+function normalize(text = "") {
+  return String(text)
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
 }
 
-function gerarChave(numero) {
 
-  if (typeof numero === "object" && numero !== null) {
+export default async function handler(req, res) {
 
-    if ("sistema" in numero && "par" in numero) {
-      return `${numero.sistema}-${numero.par}`;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+
+  try {
+
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        success: false,
+        erro: "Método não permitido"
+      });
     }
 
-    return JSON.stringify(numero);
-  }
+    console.log("BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
 
-  return numero;
-}
+    const body = req.body || {};
+    let { curso, dados } = body;
+
+    // 🔒 curso obrigatório
+    if (!curso) {
+      return res.status(400).json({
+        success: false,
+        erro: "Campo 'curso' é obrigatório"
+      });
+    }
+
+    // 🔒 validação de dados
+    if (!dados || typeof dados !== "object") {
+      return res.status(400).json({
+        success: false,
+        erro: "Campo 'dados' inválido ou ausente"
+      });
+    }
+
+    if (Object.keys(dados).length === 0) {
+      return res.status(400).json({
+        success: false,
+        erro: "Nenhum dado de rastreio informado"
+      });
+    }
+
+    const rawCurso = String(curso)
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s]/g, "-")
+      .replace(/--+/g, "-");
 
 
-export async function aggregateData(dados, paths, resolvePath) {
+    const cursoMap = {
 
-  const resultado = {};
-  const pathMap = new Map(); // path → lista de usos
+      dam: "dam",
 
-  for (const categoria in dados) {
+      "bio-humano": "bio-humano",
+      biohumano: "bio-humano",
 
-    const valores = dados[categoria];
+      "bio-animal": "bio-animal",
+      bioanimal: "bio-animal",
 
-    if (!Array.isArray(valores)) continue;
+      "espiritos-miasmas": "espiritos-miasmas",
+      espiritosmiasmas: "espiritos-miasmas"
 
-    for (const numero of valores) {
+    };
+
+
+    const cursoKey = cursoMap[rawCurso];
+
+
+    const domains = {
+
+      "espiritos-miasmas": {
+        paths: espiritosPaths,
+        resolve: resolveEspiritos
+      },
+
+      dam: {
+        paths: damPaths,
+        resolve: resolveDam
+      },
+
+      "bio-humano": {
+        paths: bioHumanoPaths,
+        resolve: resolveBioHumano
+      },
+
+      "bio-animal": {
+        paths: bioAnimalPaths,
+        resolve: resolveBioAnimal
+      }
+
+    };
+
+
+    const domain = domains[cursoKey];
+
+
+    if (!domain) {
+
+      console.error("Curso inválido recebido:", rawCurso);
+
+      return res.status(400).json({
+        success: false,
+        erro: `Curso inválido: ${rawCurso}`
+      });
+
+    }
+
+
+    let resultado = {};
+
+    try {
+
+      resultado = await aggregateData(
+        dados,
+        domain.paths,
+        domain.resolve
+      ) || {};
+
+    } catch (err) {
+
+      console.error("Erro no aggregateData:", err);
+
+      return res.status(500).json({
+        success: false,
+        erro: "Erro ao processar os dados de rastreio",
+        retry: true
+      });
+
+    }
+
+
+    // 🔒 evita retorno vazio
+    if (!resultado || Object.keys(resultado).length === 0) {
+
+      console.error("Resultado vazio");
+
+      return res.status(500).json({
+        success: false,
+        erro: "Nenhum conteúdo encontrado",
+        retry: true
+      });
+
+    }
+
+
+    // 🔥 tratamento especial DAM (mantras)
+    if (cursoKey === "dam") {
+
+      let mantraAtivacao = "";
+      let mantraDesativacao = "";
 
       try {
 
-        let path;
+        const [ativacao, desativacao] = await Promise.all([
 
-        if (typeof numero === "object" && numero !== null) {
+          fetchFromGitHub("DAM/MANTRAS/MANTRA-ATIVACAO.txt"),
+          fetchFromGitHub("DAM/MANTRAS/MANTRA-DESATIVACAO.txt")
 
-          if ("sistema" in numero && "par" in numero) {
-            path = resolvePath(categoria, numero.par, paths, numero.sistema);
-          } else {
-            path = resolvePath(categoria, numero, paths);
-          }
+        ]);
 
-        } else {
+        mantraAtivacao = normalize(ativacao);
+        mantraDesativacao = normalize(desativacao);
 
-          path = resolvePath(categoria, numero, paths);
+      } catch (err) {
 
-        }
-
-        if (typeof path === "function") {
-          path = path(numero);
-        }
-
-        if (!path || typeof path !== "string") {
-          console.warn("Path inválido:", categoria, numero, path);
-          continue;
-        }
-
-        const chave = gerarChave(numero);
-
-        if (!pathMap.has(path)) {
-          pathMap.set(path, []);
-        }
-
-        pathMap.get(path).push({
-          categoria,
-          chave
-        });
-
-      } catch (error) {
-
-        console.error("Erro ao resolver path:", categoria, numero, error);
+        console.error("Erro ao buscar mantras:", err);
 
       }
 
-    }
 
-  }
+      return res.status(200).json({
 
-  // 🔹 baixa cada arquivo apenas uma vez
-  const downloads = [];
+        success: true,
+        curso: cursoKey,
+        resultado,
 
-  for (const [path, usos] of pathMap.entries()) {
+        mantras: {
+          ativacao: mantraAtivacao,
+          desativacao: mantraDesativacao
+        }
 
-    const task = fetchCached(path).then((conteudo) => ({
-      path,
-      usos,
-      conteudo
-    }));
-
-    downloads.push(task);
-
-  }
-
-  const responses = await Promise.allSettled(downloads);
-
-  for (const response of responses) {
-
-    if (response.status !== "fulfilled") continue;
-
-    const { usos, conteudo } = response.value;
-
-    for (const uso of usos) {
-
-      if (!resultado[uso.categoria]) {
-        resultado[uso.categoria] = {};
-      }
-
-      resultado[uso.categoria][uso.chave] = conteudo;
+      });
 
     }
 
-  }
 
-  return resultado;
+    // 📦 retorno padrão (BIO HUMANO, BIO ANIMAL, ESPÍRITOS)
+
+    return res.status(200).json({
+
+      success: true,
+      curso: cursoKey,
+      resultado
+
+    });
+
+  } catch (error) {
+
+    console.error("Erro inesperado no rastreio:", error);
+
+    return res.status(500).json({
+      success: false,
+      erro: "Erro interno do servidor",
+      retry: true
+    });
+
+  }
 
 }
