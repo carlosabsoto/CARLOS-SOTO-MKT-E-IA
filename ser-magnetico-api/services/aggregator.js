@@ -20,26 +20,11 @@ async function fetchCached(path) {
   return data;
 }
 
-function gerarChave(numero) {
-
-  if (typeof numero === "object" && numero !== null) {
-
-    if ("sistema" in numero && "par" in numero) {
-      return `${numero.sistema}-${numero.par}`;
-    }
-
-    return JSON.stringify(numero);
-  }
-
-  return numero;
-}
-
-
 export async function aggregateData(dados, paths, resolvePath) {
 
   const resultado = {};
   const tasks = [];
-  const pathCache = new Map(); // deduplicação
+  const pathCache = new Map();
 
   for (const categoria in dados) {
 
@@ -47,20 +32,32 @@ export async function aggregateData(dados, paths, resolvePath) {
 
     if (!Array.isArray(valores)) continue;
 
-    resultado[categoria] = {};
+    if (!resultado[categoria] && categoria !== "paresSistema") {
+      resultado[categoria] = {};
+    }
 
     for (const numero of valores) {
 
       try {
 
         let path;
+        let sistema = null;
+        let par = null;
 
+        // 🔹 tratamento especial para pares de sistema
         if (typeof numero === "object" && numero !== null) {
 
           if ("sistema" in numero && "par" in numero) {
-            path = resolvePath(categoria, numero.par, paths, numero.sistema);
+
+            sistema = numero.sistema;
+            par = numero.par;
+
+            path = resolvePath(categoria, par, paths, sistema);
+
           } else {
+
             path = resolvePath(categoria, numero, paths);
+
           }
 
         } else {
@@ -78,12 +75,13 @@ export async function aggregateData(dados, paths, resolvePath) {
           continue;
         }
 
-        const chave = gerarChave(numero);
-
         if (!pathCache.has(path)) {
 
           const task = fetchCached(path).then((conteudo) => ({
-            path,
+            categoria,
+            numero,
+            sistema,
+            par,
             conteudo
           }));
 
@@ -91,13 +89,7 @@ export async function aggregateData(dados, paths, resolvePath) {
 
         }
 
-        tasks.push(
-          pathCache.get(path).then(({ conteudo }) => ({
-            categoria,
-            chave,
-            conteudo
-          }))
-        );
+        tasks.push(pathCache.get(path));
 
       } catch (error) {
 
@@ -117,11 +109,54 @@ export async function aggregateData(dados, paths, resolvePath) {
 
     const item = response.value;
 
-    if (!resultado[item.categoria]) {
-      resultado[item.categoria] = {};
+    const { categoria, numero, sistema, par, conteudo } = item;
+
+    // 🔹 pares de sistema entram dentro de sistemas
+    if (categoria === "paresSistema") {
+
+      if (!resultado.sistemas) {
+        resultado.sistemas = {};
+      }
+
+      if (!resultado.sistemas[sistema]) {
+        resultado.sistemas[sistema] = {
+          descricao: "",
+          pares: {}
+        };
+      }
+
+      resultado.sistemas[sistema].pares[par] = conteudo;
+
+      continue;
+
     }
 
-    resultado[item.categoria][item.chave] = item.conteudo;
+    // 🔹 sistemas
+    if (categoria === "sistemas") {
+
+      if (!resultado.sistemas) {
+        resultado.sistemas = {};
+      }
+
+      if (!resultado.sistemas[numero]) {
+        resultado.sistemas[numero] = {
+          descricao: "",
+          pares: {}
+        };
+      }
+
+      resultado.sistemas[numero].descricao = conteudo;
+
+      continue;
+
+    }
+
+    // 🔹 categorias normais
+    if (!resultado[categoria]) {
+      resultado[categoria] = {};
+    }
+
+    resultado[categoria][numero] = conteudo;
 
   }
 
