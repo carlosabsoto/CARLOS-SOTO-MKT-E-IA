@@ -25,9 +25,8 @@ export default async function handler(req, res) {
       ativacoes: {}
     };
 
-    const tarefas = [];
-
-    function carregar(categoria, numeros, resolver) {
+    // leitura sequencial (mais estável para mobile)
+    async function carregar(categoria, numeros, resolver) {
 
       if (!numeros || !Array.isArray(numeros)) return;
 
@@ -40,67 +39,64 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const tarefa = fetchFromGitHub(path)
-          .then(conteudo => {
+        try {
 
-            if (!conteudo) {
-              console.log("Arquivo vazio:", path);
-              return;
-            }
+          const conteudo = await fetchFromGitHub(path);
 
-            resultado[categoria][n] = conteudo;
+          if (!conteudo) {
+            console.log("Arquivo vazio:", path);
+            continue;
+          }
 
-          })
-          .catch(err => {
-            console.log("Erro ao buscar:", path, err.message);
-          });
+          resultado[categoria][n] = conteudo;
 
-        tarefas.push(tarefa);
+        } catch (err) {
+
+          console.log("Erro ao buscar:", path, err.message);
+
+        }
+
       }
+
     }
 
-    carregar("cartas", dados.cartas, damPaths.cartas);
-    carregar("areasSistemicas", dados.areasSistemicas, damPaths.areasSistemicas);
-    carregar("areasDeAtuacao", dados.areasDeAtuacao, damPaths.areasDeAtuacao);
-    carregar("desativacoes", dados.desativacoes, damPaths.desativacoes);
-    carregar("ativacoes", dados.ativacoes, damPaths.ativacoes);
+    await carregar("cartas", dados.cartas, damPaths.cartas);
+    await carregar("areasSistemicas", dados.areasSistemicas, damPaths.areasSistemicas);
+    await carregar("areasDeAtuacao", dados.areasDeAtuacao, damPaths.areasDeAtuacao);
+    await carregar("desativacoes", dados.desativacoes, damPaths.desativacoes);
+    await carregar("ativacoes", dados.ativacoes, damPaths.ativacoes);
 
-    await Promise.all(tarefas);
+    // mantras
+    const mantraAtivacao = damPaths.mantraAtivacao
+      ? await fetchFromGitHub(damPaths.mantraAtivacao)
+      : "";
 
-    const [mantraAtivacao, mantraDesativacao] = await Promise.all([
-      damPaths.mantraAtivacao
-        ? fetchFromGitHub(damPaths.mantraAtivacao)
-        : "",
-      damPaths.mantraDesativacao
-        ? fetchFromGitHub(damPaths.mantraDesativacao)
-        : ""
-    ]);
+    const mantraDesativacao = damPaths.mantraDesativacao
+      ? await fetchFromGitHub(damPaths.mantraDesativacao)
+      : "";
 
+    // agregação
     const blocos = aggregateData(resultado, mantraAtivacao, mantraDesativacao);
 
-    // consolida para evitar erro de transmissão do GPT
-    const textoFinal = Array.isArray(blocos)
-      ? blocos.join("\n\n")
-      : blocos;
+    const resultadoBlocos = Array.isArray(blocos) ? blocos : [blocos];
 
-    return res.status(200).json({
+    // logs de diagnóstico
+    console.log("TOTAL BLOCOS:", resultadoBlocos.length);
+
+    resultadoBlocos.forEach((b, i) => {
+      console.log(`BLOCO ${i} TAMANHO:`, b.length);
+    });
+
+    const jsonResposta = {
       success: true,
       curso,
-      resultado: blocos,   // blocos individuais
-      texto: textoFinal,   // texto consolidado para exibição
-      mantras: {
-        ativacao: mantraAtivacao,
-        desativacao: mantraDesativacao
-      }
-    });
-    
-const tamanho = JSON.stringify(jsonResposta).length;
+      resultado: resultadoBlocos
+    };
 
-console.log("TAMANHO JSON:", tamanho);
+    console.log("TAMANHO JSON:", JSON.stringify(jsonResposta).length);
 
-return res.status(200).json(jsonResposta);
+    return res.status(200).json(jsonResposta);
 
-    
   } catch (erro) {
 
     console.error("Erro rastreio:", erro);
