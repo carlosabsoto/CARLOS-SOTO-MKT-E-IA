@@ -1,6 +1,15 @@
 import damPaths from "../domains/dam/paths.js";
-import { aggregateData } from "../services/aggregator.js";
+import espiritosPaths from "../domains/espiritos-miasmas/paths.js";
+import bioHumanoPaths from "../domains/bio-humano/paths.js";
+import bioAnimalPaths from "../domains/bio-animal/paths.js";
+
+import { aggregateData } from "../services/aggregatorDAM.js";
+import { aggregateEspiritos } from "../services/aggregatorEspiritos.js";
+import { aggregateBioHumano } from "../services/aggregatorBioHumano.js";
+import { aggregateBioAnimal } from "../services/aggregatorBioAnimal.js";
+
 import { fetchFromGitHub } from "../services/githubService.js";
+
 
 export default async function handler(req, res) {
 
@@ -13,19 +22,102 @@ export default async function handler(req, res) {
       });
     }
 
-    // aceita body com ou sem "dados"
     const curso = req.body.curso || "dam";
     const dados = req.body.dados || req.body || {};
 
-    const resultado = {
-      cartas: {},
-      areasSistemicas: {},
-      areasDeAtuacao: {},
-      desativacoes: {},
-      ativacoes: {}
-    };
+    let paths;
+    let aggregator;
+    let resultado = {};
 
-    // leitura sequencial (mais estável para mobile)
+    /*
+    ------------------------------------------------
+    SELEÇÃO DO CURSO
+    ------------------------------------------------
+    */
+
+    switch (curso) {
+
+      case "dam":
+
+        paths = damPaths;
+        aggregator = aggregateData;
+
+        resultado = {
+          cartas: {},
+          areasSistemicas: {},
+          areasDeAtuacao: {},
+          desativacoes: {},
+          ativacoes: {}
+        };
+
+        break;
+
+
+      case "espiritos":
+
+        paths = espiritosPaths;
+        aggregator = aggregateEspiritos;
+
+        resultado = {
+          fechamentoPortais: {},
+          cancelamentoPactos: {},
+          liberacaoEspiritos: {},
+          energiasDensas: {},
+          associacaoEmocional: {},
+          psiquismoMae: {},
+          psiquismoPai: {},
+          miasmas: {}
+        };
+
+        break;
+
+
+      case "biohumano":
+
+        paths = bioHumanoPaths;
+        aggregator = aggregateBioHumano;
+
+        resultado = {
+          paresEmocionais: {},
+          reservatorios: {},
+          rastreioGeral: {},
+          sistemas: {}
+        };
+
+        break;
+
+
+      case "bioanimal":
+
+        paths = bioAnimalPaths;
+        aggregator = aggregateBioAnimal;
+
+        resultado = {
+          paresEmocionais: {},
+          reservatorios: {},
+          rastreioGeral: {},
+          sistemas: {}
+        };
+
+        break;
+
+
+      default:
+
+        return res.status(400).json({
+          success: false,
+          erro: "Curso inválido"
+        });
+
+    }
+
+
+    /*
+    ------------------------------------------------
+    CARREGAMENTO SEQUENCIAL (ESTÁVEL MOBILE)
+    ------------------------------------------------
+    */
+
     async function carregar(categoria, numeros, resolver) {
 
       if (!numeros || !Array.isArray(numeros)) return;
@@ -60,32 +152,65 @@ export default async function handler(req, res) {
 
     }
 
-    await carregar("cartas", dados.cartas, damPaths.cartas);
-    await carregar("areasSistemicas", dados.areasSistemicas, damPaths.areasSistemicas);
-    await carregar("areasDeAtuacao", dados.areasDeAtuacao, damPaths.areasDeAtuacao);
-    await carregar("desativacoes", dados.desativacoes, damPaths.desativacoes);
-    await carregar("ativacoes", dados.ativacoes, damPaths.ativacoes);
 
-    // mantras
-    const mantraAtivacao = damPaths.mantraAtivacao
-      ? await fetchFromGitHub(damPaths.mantraAtivacao)
+    /*
+    ------------------------------------------------
+    EXECUÇÃO DINÂMICA
+    ------------------------------------------------
+    */
+
+    for (const categoria in dados) {
+
+      const resolver = paths[categoria];
+
+      if (typeof resolver === "function") {
+
+        await carregar(categoria, dados[categoria], resolver);
+
+      }
+
+    }
+
+
+    /*
+    ------------------------------------------------
+    MANTRAS
+    ------------------------------------------------
+    */
+
+    const mantraAtivacao = paths.mantraAtivacao
+      ? await fetchFromGitHub(paths.mantraAtivacao)
       : "";
 
-    const mantraDesativacao = damPaths.mantraDesativacao
-      ? await fetchFromGitHub(damPaths.mantraDesativacao)
+    const mantraDesativacao = paths.mantraDesativacao
+      ? await fetchFromGitHub(paths.mantraDesativacao)
       : "";
 
-    // agregação
-    const blocos = aggregateData(resultado, mantraAtivacao, mantraDesativacao);
+
+    /*
+    ------------------------------------------------
+    AGREGAÇÃO
+    ------------------------------------------------
+    */
+
+    const blocos = aggregator(resultado, mantraAtivacao, mantraDesativacao);
 
     const resultadoBlocos = Array.isArray(blocos) ? blocos : [blocos];
 
-    // logs de diagnóstico
+
+    /*
+    ------------------------------------------------
+    LOGS DE DIAGNÓSTICO
+    ------------------------------------------------
+    */
+
+    console.log("CURSO:", curso);
     console.log("TOTAL BLOCOS:", resultadoBlocos.length);
 
     resultadoBlocos.forEach((b, i) => {
       console.log(`BLOCO ${i} TAMANHO:`, b.length);
     });
+
 
     const jsonResposta = {
       success: true,
@@ -95,7 +220,9 @@ export default async function handler(req, res) {
 
     console.log("TAMANHO JSON:", JSON.stringify(jsonResposta).length);
 
+
     return res.status(200).json(jsonResposta);
+
 
   } catch (erro) {
 
