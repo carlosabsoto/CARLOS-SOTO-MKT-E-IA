@@ -15,7 +15,7 @@ export default {
   paresSistema: (sistema, par) =>
     `BIO-HUMANO/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.txt`,
 
-  sistemas: (n) =>
+  protocolos: (n) =>
     `BIO-HUMANO/PROTOCOLOS/PROTOCOLO-${n}.md`
   
 };
