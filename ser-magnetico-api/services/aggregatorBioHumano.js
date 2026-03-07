@@ -29,6 +29,7 @@ function dividirTextoSeguro(texto = "") {
   if (buffer.trim()) partes.push(buffer.trim());
 
   return partes;
+
 }
 
 export function aggregateBioHumano(resultado) {
@@ -61,21 +62,20 @@ export function aggregateBioHumano(resultado) {
   adicionarCategoria("Reservatórios", "reservatorios");
   adicionarCategoria("Rastreio Geral", "rastreioGeral");
 
-  // SISTEMAS
+  // SISTEMAS (protocolos)
 
-  if (resultado.sistemas) {
+  if (resultado.protocolos) {
 
     blocos.push("SISTEMAS");
 
-    for (const sistema of Object.keys(resultado.sistemas)) {
+    for (const sistema of Object.keys(resultado.protocolos)) {
 
-      const textoSistema = resultado.sistemas[sistema];
+      const textoSistema = resultado.protocolos[sistema];
 
-      // descrição do sistema
       const partesSistema = dividirTextoSeguro(textoSistema);
+
       blocos.push(...partesSistema);
 
-      // pares do sistema
       if (resultado.paresSistema) {
 
         for (const chave of Object.keys(resultado.paresSistema)) {
