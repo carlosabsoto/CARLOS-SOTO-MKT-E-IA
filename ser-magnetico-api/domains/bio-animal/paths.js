@@ -17,7 +17,7 @@ const paths = {
   sistemas: (n) =>
     `BIO-ANIMAL/SISTEMAS/SISTEMA-${n}.md`,
 
-  paresSistema: ({ sistema, par }) =>
+  paresSistema: (sistema, par) =>
     `BIO-ANIMAL/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.md`
 
 };
