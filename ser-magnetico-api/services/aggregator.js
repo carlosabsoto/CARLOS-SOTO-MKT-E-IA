@@ -1,13 +1,20 @@
+export function dividirEmBlocos(texto = "", tamanho = 12000) {
+
+  const partes = [];
+  let inicio = 0;
+
+  while (inicio < texto.length) {
+    partes.push(texto.slice(inicio, inicio + tamanho));
+    inicio += tamanho;
+  }
+
+  return partes;
+
+}
+
 export function aggregateData(resultado, mantraAtivacao, mantraDesativacao) {
 
   const blocos = [];
-
-  // mantra de ativação primeiro
-  if (mantraAtivacao) {
-    blocos.push(
-      "MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao
-    );
-  }
 
   function adicionarCategoria(titulo, categoria) {
 
@@ -15,9 +22,30 @@ export function aggregateData(resultado, mantraAtivacao, mantraDesativacao) {
 
     if (!itens || Object.keys(itens).length === 0) return;
 
-    const texto = Object.values(itens).join("\n\n");
+    blocos.push(`${titulo}`);
 
-    blocos.push(`${titulo}\n\n${texto}`);
+    for (const key of Object.keys(itens)) {
+
+      const texto = itens[key];
+
+      const partes = dividirEmBlocos(texto, 12000);
+
+      blocos.push(...partes);
+
+    }
+
+  }
+
+  // mantra de ativação primeiro
+  if (mantraAtivacao) {
+
+    const partes = dividirEmBlocos(
+      `MANTRA DE ATIVAÇÃO\n\n${mantraAtivacao}`,
+      12000
+    );
+
+    blocos.push(...partes);
+
   }
 
   adicionarCategoria("Cartas da Consciência", "cartas");
@@ -28,10 +56,16 @@ export function aggregateData(resultado, mantraAtivacao, mantraDesativacao) {
 
   // mantra de desativação por último
   if (mantraDesativacao) {
-    blocos.push(
-      "MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao
+
+    const partes = dividirEmBlocos(
+      `MANTRA DE DESATIVAÇÃO\n\n${mantraDesativacao}`,
+      12000
     );
+
+    blocos.push(...partes);
+
   }
 
   return blocos;
+
 }
