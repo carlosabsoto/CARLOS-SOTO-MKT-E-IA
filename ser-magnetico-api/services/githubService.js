@@ -1,5 +1,5 @@
 const BASE_URL =
-  "https://raw.githubusercontent.com/Carlos-Soto-MKT/IAs-Ser-Magnetico/refs/heads/main/";
+  "https://raw.githubusercontent.com/Carlos-Soto-MKT/IAs-Ser-Magnetico/main/";
 
 const cache = new Map();
 const pendingRequests = new Map();
