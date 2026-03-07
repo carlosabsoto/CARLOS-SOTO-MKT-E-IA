@@ -93,7 +93,14 @@ export default async function handler(req, res) {
         desativacao: mantraDesativacao
       }
     });
+    
+const tamanho = JSON.stringify(jsonResposta).length;
 
+console.log("TAMANHO JSON:", tamanho);
+
+return res.status(200).json(jsonResposta);
+
+    
   } catch (erro) {
 
     console.error("Erro rastreio:", erro);
