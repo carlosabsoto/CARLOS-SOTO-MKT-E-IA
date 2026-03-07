@@ -2,6 +2,10 @@ const LIMITE_BLOCO = 6000;
 
 function dividirTextoSeguro(texto = "") {
 
+  if (!texto || typeof texto !== "string") {
+    return [];
+  }
+
   const partes = [];
   let buffer = "";
 
@@ -48,9 +52,12 @@ export function aggregateData(resultado, mantraAtivacao, mantraDesativacao) {
 
       const texto = itens[key];
 
-      const partes = dividirTextoSeguro(texto);
+      if (typeof texto === "string") {
 
-      blocos.push(...partes);
+        const partes = dividirTextoSeguro(texto);
+        blocos.push(...partes);
+
+      }
 
     }
 
@@ -72,6 +79,45 @@ export function aggregateData(resultado, mantraAtivacao, mantraDesativacao) {
   adicionarCategoria("Áreas de Atuação", "areasDeAtuacao");
   adicionarCategoria("Desativações", "desativacoes");
   adicionarCategoria("Ativações", "ativacoes");
+
+  adicionarCategoria("Pares Emocionais", "paresEmocionais");
+  adicionarCategoria("Reservatórios", "reservatorios");
+  adicionarCategoria("Rastreio Geral", "rastreioGeral");
+
+  // SISTEMAS (estrutura especial para Bio Humano e Bio Animal)
+
+  if (resultado.sistemas) {
+
+    blocos.push("SISTEMAS");
+
+    for (const sistema of Object.keys(resultado.sistemas)) {
+
+      const s = resultado.sistemas[sistema];
+
+      if (s.texto) {
+
+        const partesSistema = dividirTextoSeguro(s.texto);
+        blocos.push(...partesSistema);
+
+      }
+
+      if (s.pares) {
+
+        for (const par of Object.keys(s.pares)) {
+
+          const textoPar = s.pares[par];
+
+          const partesPar = dividirTextoSeguro(textoPar);
+
+          blocos.push(...partesPar);
+
+        }
+
+      }
+
+    }
+
+  }
 
   // mantra desativação por último
   if (mantraDesativacao) {
