@@ -3,7 +3,7 @@ import espiritosPaths from "../domains/espiritos-miasmas/paths.js";
 import bioHumanoPaths from "../domains/bio-humano/paths.js";
 import bioAnimalPaths from "../domains/bio-animal/paths.js";
 
-import { aggregateData } from "../services/aggregatorDAM.js";
+import { aggregateDAM } from "../services/aggregatorDAM.js";
 import { aggregateEspiritos } from "../services/aggregatorEspiritos.js";
 import { aggregateBioHumano } from "../services/aggregatorBioHumano.js";
 import { aggregateBioAnimal } from "../services/aggregatorBioAnimal.js";
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       case "dam":
 
         paths = damPaths;
-        aggregator = aggregateData;
+        aggregator = aggregateDAM;
 
         resultado = {
           cartas: {},
@@ -205,6 +205,7 @@ export default async function handler(req, res) {
     */
 
     console.log("CURSO:", curso);
+    console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
     console.log("TOTAL BLOCOS:", resultadoBlocos.length);
 
     resultadoBlocos.forEach((b, i) => {
@@ -222,9 +223,6 @@ export default async function handler(req, res) {
 
 
     return res.status(200).json(jsonResposta);
-
-    console.log("CURSO:", curso);
-console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
 
   } catch (erro) {
 
