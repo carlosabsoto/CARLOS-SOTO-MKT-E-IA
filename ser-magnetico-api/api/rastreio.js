@@ -223,6 +223,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json(jsonResposta);
 
+    console.log("CURSO:", curso);
+console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
 
   } catch (erro) {
 
