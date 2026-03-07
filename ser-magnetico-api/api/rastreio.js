@@ -25,15 +25,17 @@ export default async function handler(req, res) {
     const cursoRaw = req.body.curso || "dam";
     const dados = req.body.dados || req.body || {};
 
-    // normalização do curso
     const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
 
     console.log("CURSO RECEBIDO:", cursoRaw);
     console.log("CURSO NORMALIZADO:", curso);
+    console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
 
     let paths;
     let aggregator;
     let resultado = {};
+    let mapaCategorias = {};
+
 
     /*
     ------------------------------------------------
@@ -56,6 +58,14 @@ export default async function handler(req, res) {
           ativacoes: {}
         };
 
+        mapaCategorias = {
+          cartas: "cartas",
+          areasSistemicas: "areasSistemicas",
+          areasDeAtuacao: "areasDeAtuacao",
+          desativacoes: "desativacoes",
+          ativacoes: "ativacoes"
+        };
+
         break;
 
 
@@ -71,9 +81,18 @@ export default async function handler(req, res) {
           liberacaoEspiritos: {},
           energiasDensas: {},
           associacaoEmocional: {},
-          psiquismoMae: {},
-          psiquismoPai: {},
-          miasmas: {}
+          miasmas: {},
+          mantras: {}
+        };
+
+        mapaCategorias = {
+          portais: "fechamentoPortais",
+          pactos: "cancelamentoPactos",
+          espiritos: "liberacaoEspiritos",
+          energias: "energiasDensas",
+          associacoes: "associacaoEmocional",
+          miasmas: "miasmas",
+          mantras: "mantras"
         };
 
         break;
@@ -91,6 +110,13 @@ export default async function handler(req, res) {
           sistemas: {}
         };
 
+        mapaCategorias = {
+          paresEmocionais: "paresEmocionais",
+          reservatorios: "reservatorios",
+          rastreioGeral: "rastreioGeral",
+          sistemas: "sistemas"
+        };
+
         break;
 
 
@@ -104,6 +130,13 @@ export default async function handler(req, res) {
           reservatorios: {},
           rastreioGeral: {},
           sistemas: {}
+        };
+
+        mapaCategorias = {
+          paresEmocionais: "paresEmocionais",
+          reservatorios: "reservatorios",
+          rastreioGeral: "rastreioGeral",
+          sistemas: "sistemas"
         };
 
         break;
@@ -121,9 +154,10 @@ export default async function handler(req, res) {
     }
 
 
+
     /*
     ------------------------------------------------
-    CARREGAMENTO SEQUENCIAL (ESTÁVEL MOBILE)
+    CARREGAMENTO SEQUENCIAL (MAIS ESTÁVEL PARA MOBILE)
     ------------------------------------------------
     */
 
@@ -162,30 +196,41 @@ export default async function handler(req, res) {
     }
 
 
+
     /*
     ------------------------------------------------
-    EXECUÇÃO DINÂMICA
+    EXECUÇÃO DINÂMICA COM MAPEAMENTO
     ------------------------------------------------
     */
 
-    console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
+    for (const categoriaRecebida in dados) {
 
-    for (const categoria in dados) {
+      const categoriaInterna = mapaCategorias[categoriaRecebida];
 
-      const resolver = paths[categoria];
+      if (!categoriaInterna) {
+        console.log("Categoria ignorada:", categoriaRecebida);
+        continue;
+      }
+
+      const resolver = paths[categoriaInterna];
 
       if (typeof resolver === "function") {
 
-        await carregar(categoria, dados[categoria], resolver);
+        await carregar(
+          categoriaInterna,
+          dados[categoriaRecebida],
+          resolver
+        );
 
       }
 
     }
 
 
+
     /*
     ------------------------------------------------
-    MANTRAS
+    MANTRAS PADRÃO (se existirem)
     ------------------------------------------------
     */
 
@@ -198,20 +243,28 @@ export default async function handler(req, res) {
       : "";
 
 
+
     /*
     ------------------------------------------------
     AGREGAÇÃO
     ------------------------------------------------
     */
 
-    const blocos = aggregator(resultado, mantraAtivacao, mantraDesativacao);
+    const blocos = aggregator(
+      resultado,
+      mantraAtivacao,
+      mantraDesativacao
+    );
 
-    const resultadoBlocos = Array.isArray(blocos) ? blocos : [blocos];
+    const resultadoBlocos = Array.isArray(blocos)
+      ? blocos
+      : [blocos];
+
 
 
     /*
     ------------------------------------------------
-    LOGS DE DIAGNÓSTICO
+    LOGS
     ------------------------------------------------
     */
 
@@ -222,6 +275,7 @@ export default async function handler(req, res) {
     });
 
 
+
     const jsonResposta = {
       success: true,
       curso: cursoRaw,
@@ -229,6 +283,7 @@ export default async function handler(req, res) {
     };
 
     console.log("TAMANHO JSON:", JSON.stringify(jsonResposta).length);
+
 
 
     return res.status(200).json(jsonResposta);
