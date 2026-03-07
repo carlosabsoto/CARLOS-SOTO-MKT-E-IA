@@ -71,12 +71,11 @@ export function aggregateBioHumano(resultado) {
 
       const textoSistema = resultado.sistemas[sistema];
 
+      // descrição do sistema
       const partesSistema = dividirTextoSeguro(textoSistema);
-
       blocos.push(...partesSistema);
 
       // pares do sistema
-
       if (resultado.paresSistema) {
 
         for (const chave of Object.keys(resultado.paresSistema)) {
@@ -102,4 +101,5 @@ export function aggregateBioHumano(resultado) {
   }
 
   return blocos;
+
 }
