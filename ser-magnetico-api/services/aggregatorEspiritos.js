@@ -67,7 +67,7 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.fechamentoPortais) {
 
-    conteudo += "Mantras condicionais dos Portais\n\n";
+    conteudo += "";
 
     if (resultado.mantras?.[2]) {
       conteudo += resultado.mantras[2].trim() + "\n\n";
@@ -90,7 +90,7 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.cancelamentoPactos) {
 
-    conteudo += "Mantras condicionais dos Pactos\n\n";
+    conteudo += "";
 
     if (resultado.mantras?.[3]) {
       conteudo += resultado.mantras[3].trim() + "\n\n";
@@ -113,7 +113,7 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.liberacaoEspiritos) {
 
-    conteudo += "Mantras condicionais dos Espíritos\n\n";
+    conteudo += "";
 
     if (resultado.mantras?.[4]) {
       conteudo += resultado.mantras[4].trim() + "\n\n";
@@ -136,7 +136,7 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.energiasDensas) {
 
-    conteudo += "Mantras condicionais das Energias Densas\n\n";
+    conteudo += "";
 
     if (resultado.mantras?.[5]) {
       conteudo += resultado.mantras[5].trim() + "\n\n";
@@ -159,7 +159,7 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.associacaoEmocional) {
 
-    conteudo += "Mantra das Associações\n\n";
+    conteudo += "";
 
     if (resultado.mantras?.[9]) {
       conteudo += resultado.mantras[9].trim() + "\n\n";
@@ -204,7 +204,7 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.miasmas) {
 
-    conteudo += "Mantras condicionais dos miasmas\n\n";
+    conteudo += "";
 
     if (resultado.mantras?.[13]) {
       conteudo += resultado.mantras[13].trim() + "\n\n";
