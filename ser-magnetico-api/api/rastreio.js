@@ -22,8 +22,14 @@ export default async function handler(req, res) {
       });
     }
 
-    const curso = req.body.curso || "dam";
+    const cursoRaw = req.body.curso || "dam";
     const dados = req.body.dados || req.body || {};
+
+    // normalização do curso
+    const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
+
+    console.log("CURSO RECEBIDO:", cursoRaw);
+    console.log("CURSO NORMALIZADO:", curso);
 
     let paths;
     let aggregator;
@@ -54,6 +60,7 @@ export default async function handler(req, res) {
 
 
       case "espiritos":
+      case "espiritosmiasmas":
 
         paths = espiritosPaths;
         aggregator = aggregateEspiritos;
@@ -103,6 +110,8 @@ export default async function handler(req, res) {
 
 
       default:
+
+        console.log("CURSO NÃO RECONHECIDO:", cursoRaw);
 
         return res.status(400).json({
           success: false,
@@ -159,6 +168,8 @@ export default async function handler(req, res) {
     ------------------------------------------------
     */
 
+    console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
+
     for (const categoria in dados) {
 
       const resolver = paths[categoria];
@@ -204,8 +215,6 @@ export default async function handler(req, res) {
     ------------------------------------------------
     */
 
-    console.log("CURSO:", curso);
-    console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
     console.log("TOTAL BLOCOS:", resultadoBlocos.length);
 
     resultadoBlocos.forEach((b, i) => {
@@ -215,7 +224,7 @@ export default async function handler(req, res) {
 
     const jsonResposta = {
       success: true,
-      curso,
+      curso: cursoRaw,
       resultado: resultadoBlocos
     };
 
@@ -223,6 +232,7 @@ export default async function handler(req, res) {
 
 
     return res.status(200).json(jsonResposta);
+
 
   } catch (erro) {
 
