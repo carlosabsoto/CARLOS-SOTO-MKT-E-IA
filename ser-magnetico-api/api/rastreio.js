@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     console.log("CURSO NORMALIZADO:", curso);
     console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
 
+
     let paths;
     let aggregator;
     let resultado = {};
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
         break;
 
 
+
       case "espiritos":
       case "espiritosmiasmas":
 
@@ -98,6 +100,7 @@ export default async function handler(req, res) {
         break;
 
 
+
       case "biohumano":
 
         paths = bioHumanoPaths;
@@ -118,6 +121,7 @@ export default async function handler(req, res) {
         };
 
         break;
+
 
 
       case "bioanimal":
@@ -142,6 +146,7 @@ export default async function handler(req, res) {
         break;
 
 
+
       default:
 
         console.log("CURSO NÃO RECONHECIDO:", cursoRaw);
@@ -157,7 +162,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    CARREGAMENTO SEQUENCIAL (MAIS ESTÁVEL PARA MOBILE)
+    FUNÇÃO DE CARREGAMENTO
     ------------------------------------------------
     */
 
@@ -183,7 +188,13 @@ export default async function handler(req, res) {
             continue;
           }
 
+          if (!resultado[categoria]) {
+            resultado[categoria] = {};
+          }
+
           resultado[categoria][n] = conteudo;
+
+          console.log("✔ CONTEÚDO SALVO:", categoria, n);
 
         } catch (err) {
 
@@ -199,7 +210,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    EXECUÇÃO DINÂMICA COM MAPEAMENTO
+    EXECUÇÃO DINÂMICA
     ------------------------------------------------
     */
 
@@ -230,7 +241,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    MANTRAS PADRÃO (se existirem)
+    MANTRAS GERAIS (se existirem)
     ------------------------------------------------
     */
 
@@ -246,7 +257,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    AGREGAÇÃO
+    AGREGAÇÃO FINAL
     ------------------------------------------------
     */
 
