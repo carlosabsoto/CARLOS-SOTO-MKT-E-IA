@@ -1,18 +1,21 @@
 export default {
 
-  paresEmocionais: (numero) =>
-    `bio-humano/pares-emocionais/${numero}.md`,
+  paresEmocionais: (n) =>
+    `BIO-HUMANO/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.txt`,
 
-  reservatorios: (numero) =>
-    `bio-humano/reservatorios/${numero}.md`,
+  reservatorios: (n) =>
+    `BIO-HUMANO/RESERVATORIOS/RESERVATORIO-${n}.txt`,
 
-  rastreioGeral: (numero) =>
-    `bio-humano/rastreio-geral/${numero}.md`,
+  rastreioGeral: (n) =>
+    `BIO-HUMANO/RASTREIO-GERAL/RASTREIO-GERAL-${n}.txt`,
 
-  sistemas: (numero) =>
-    `bio-humano/sistemas/${numero}/sistema.md`,
+  sistemas: (n) =>
+    `BIO-HUMANO/SISTEMAS/SISTEMA-${n}.txt`,
 
   paresSistema: (sistema, par) =>
-    `bio-humano/sistemas/${sistema}/pares/${par}.md`
+    `BIO-HUMANO/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.txt`,
 
-}
+  sistemas: (n) =>
+    `BIO-HUMANO/PROTOCOLOS/PROTOCOLO-${n}.txt`
+  
+};
