@@ -1,78 +1,223 @@
-const LIMITE_BLOCO = 6000;
-
-function dividirTextoSeguro(texto = "") {
+export function dividirEmBlocos(texto = "", tamanho = 8000) {
 
   const partes = [];
-  let buffer = "";
+  let inicio = 0;
 
-  const paragrafos = texto.split("\n");
+  while (inicio < texto.length) {
 
-  for (const p of paragrafos) {
+    partes.push(texto.slice(inicio, inicio + tamanho));
+    inicio += tamanho;
 
-    const linha = p + "\n";
-
-    if ((buffer + linha).length > LIMITE_BLOCO) {
-
-      partes.push(buffer.trim());
-      buffer = linha;
-
-    } else {
-
-      buffer += linha;
-
-    }
-
-  }
-
-  if (buffer.trim().length > 0) {
-    partes.push(buffer.trim());
   }
 
   return partes;
 
 }
 
-export function aggregateEspiritos(resultado, mantraAtivacao, mantraDesativacao) {
 
-  const blocos = [];
+export function aggregateEspiritos(resultado = {}) {
 
-  function adicionarCategoria(titulo, categoria) {
+  let conteudo = "";
 
-    const itens = resultado[categoria];
+  /*
+  -----------------------------------
+  MANTRA DE ABERTURA
+  -----------------------------------
+  */
 
-    if (!itens || Object.keys(itens).length === 0) return;
+  if (resultado.mantras?.[1]) {
 
-    blocos.push(titulo);
+    conteudo += "Mantra de abertura\n\n";
+    conteudo += resultado.mantras[1] + "\n\n";
 
-    for (const key of Object.keys(itens)) {
+  }
 
-      const texto = itens[key];
 
-      const partes = dividirTextoSeguro(texto);
+  /*
+  -----------------------------------
+  PORTAIS
+  -----------------------------------
+  */
 
-      blocos.push(...partes);
+  if (resultado.fechamentoPortais) {
+
+    conteudo += "Mantras condicionais dos Portais\n\n";
+
+    if (resultado.mantras?.[2]) {
+      conteudo += resultado.mantras[2] + "\n\n";
+    }
+
+    conteudo += "Resultado Portais\n\n";
+
+    for (const key in resultado.fechamentoPortais) {
+
+      conteudo += resultado.fechamentoPortais[key] + "\n\n";
 
     }
 
   }
 
-  if (mantraAtivacao) {
-    blocos.push("MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao);
+
+  /*
+  -----------------------------------
+  PACTOS
+  -----------------------------------
+  */
+
+  if (resultado.cancelamentoPactos) {
+
+    conteudo += "Mantras condicionais dos Pactos\n\n";
+
+    if (resultado.mantras?.[3]) {
+      conteudo += resultado.mantras[3] + "\n\n";
+    }
+
+    conteudo += "Resultado Pactos\n\n";
+
+    for (const key in resultado.cancelamentoPactos) {
+
+      conteudo += resultado.cancelamentoPactos[key] + "\n\n";
+
+    }
+
   }
 
-  adicionarCategoria("Fechamento de Portais e Buracos Energéticos", "fechamentoPortais");
-  adicionarCategoria("Cancelamento de Pactos, Contratos e Compromissos", "cancelamentoPactos");
-  adicionarCategoria("Liberação de Espíritos", "liberacaoEspiritos");
-  adicionarCategoria("Energias Densas ou Diabólicas", "energiasDensas");
-  adicionarCategoria("Associação Emocional", "associacaoEmocional");
-  adicionarCategoria("Informação do Psiquismo da Mãe", "psiquismoMae");
-  adicionarCategoria("Informação do Psiquismo do Pai", "psiquismoPai");
-  adicionarCategoria("Miasmas e Cargas Eletromagnéticas", "miasmas");
 
-  if (mantraDesativacao) {
-    blocos.push("MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao);
+  /*
+  -----------------------------------
+  ESPÍRITOS
+  -----------------------------------
+  */
+
+  if (resultado.liberacaoEspiritos) {
+
+    conteudo += "Mantras condicionais dos Espíritos\n\n";
+
+    if (resultado.mantras?.[4]) {
+      conteudo += resultado.mantras[4] + "\n\n";
+    }
+
+    conteudo += "Resultado Espíritos\n\n";
+
+    for (const key in resultado.liberacaoEspiritos) {
+
+      conteudo += resultado.liberacaoEspiritos[key] + "\n\n";
+
+    }
+
   }
 
-  return blocos;
+
+  /*
+  -----------------------------------
+  ENERGIAS DENSAS
+  -----------------------------------
+  */
+
+  if (resultado.energiasDensas) {
+
+    conteudo += "Mantras condicionais das Energias Densas\n\n";
+
+    if (resultado.mantras?.[5]) {
+      conteudo += resultado.mantras[5] + "\n\n";
+    }
+
+    conteudo += "Resultado Energias Densas\n\n";
+
+    for (const key in resultado.energiasDensas) {
+
+      conteudo += resultado.energiasDensas[key] + "\n\n";
+
+    }
+
+  }
+
+
+  /*
+  -----------------------------------
+  ASSOCIAÇÕES
+  -----------------------------------
+  */
+
+  if (resultado.associacaoEmocional) {
+
+    conteudo += "Mantra das Associações\n\n";
+
+    if (resultado.mantras?.[9]) {
+      conteudo += resultado.mantras[9] + "\n\n";
+    }
+
+    conteudo += "Resultado Associação emocional\n\n";
+
+    for (const key in resultado.associacaoEmocional) {
+
+      conteudo += resultado.associacaoEmocional[key] + "\n\n";
+
+    }
+
+  }
+
+
+  /*
+  -----------------------------------
+  PSIQUISMO
+  -----------------------------------
+  */
+
+  if (resultado.mantras?.[10]) {
+
+    conteudo += "Psiquismo da mãe\n\n";
+    conteudo += resultado.mantras[10] + "\n\n";
+
+  }
+
+  if (resultado.mantras?.[11]) {
+
+    conteudo += "Psiquismo do pai\n\n";
+    conteudo += resultado.mantras[11] + "\n\n";
+
+  }
+
+
+  /*
+  -----------------------------------
+  MIASMAS
+  -----------------------------------
+  */
+
+  if (resultado.miasmas) {
+
+    conteudo += "Mantras condicionais dos miasmas\n\n";
+
+    if (resultado.mantras?.[13]) {
+      conteudo += resultado.mantras[13] + "\n\n";
+    }
+
+    conteudo += "Resultado Miasmas\n\n";
+
+    for (const key in resultado.miasmas) {
+
+      conteudo += resultado.miasmas[key] + "\n\n";
+
+    }
+
+  }
+
+
+  /*
+  -----------------------------------
+  ENCERRAMENTO
+  -----------------------------------
+  */
+
+  if (resultado.mantras?.[14]) {
+
+    conteudo += "Mantra de encerramento\n\n";
+    conteudo += resultado.mantras[14] + "\n\n";
+
+  }
+
+
+  return dividirEmBlocos(conteudo, 12000);
 
 }
