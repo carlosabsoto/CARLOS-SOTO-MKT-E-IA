@@ -1,4 +1,4 @@
-export function dividirEmBlocos(texto = "", tamanho = 12000) {
+export function dividirEmBlocos(texto = "", tamanho = 8000) {
 
   const partes = [];
   let inicio = 0;
