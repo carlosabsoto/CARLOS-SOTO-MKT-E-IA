@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
     // aceita body com ou sem "dados"
     const curso = req.body.curso || "dam";
-    const dados = req.body.dados || req.body;
+    const dados = req.body.dados || req.body || {};
 
     const resultado = {
       cartas: {},
@@ -29,17 +29,27 @@ export default async function handler(req, res) {
 
     function carregar(categoria, numeros, resolver) {
 
-      if (!numeros) return;
+      if (!numeros || !Array.isArray(numeros)) return;
 
       for (const n of numeros) {
 
         const path = resolver(n);
 
-        if (!path) continue;
+        if (!path) {
+          console.log("Path não encontrado:", categoria, n);
+          continue;
+        }
 
         const tarefa = fetchFromGitHub(path)
           .then(conteudo => {
+
+            if (!conteudo) {
+              console.log("Arquivo vazio:", path);
+              return;
+            }
+
             resultado[categoria][n] = conteudo;
+
           })
           .catch(err => {
             console.log("Erro ao buscar:", path, err.message);
@@ -68,10 +78,16 @@ export default async function handler(req, res) {
 
     const blocos = aggregateData(resultado, mantraAtivacao, mantraDesativacao);
 
+    // consolida para evitar erro de transmissão do GPT
+    const textoFinal = Array.isArray(blocos)
+      ? blocos.join("\n\n")
+      : blocos;
+
     return res.status(200).json({
       success: true,
       curso,
-      resultado: blocos,
+      resultado: blocos,   // blocos individuais
+      texto: textoFinal,   // texto consolidado para exibição
       mantras: {
         ativacao: mantraAtivacao,
         desativacao: mantraDesativacao
