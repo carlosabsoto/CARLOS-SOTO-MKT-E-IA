@@ -74,7 +74,7 @@ export function aggregateEspiritos(resultado = {}) {
     }
 
     conteudo += adicionarLista(
-      "Resultado Portais",
+      "",
       resultado.fechamentoPortais
     );
 
@@ -97,7 +97,7 @@ export function aggregateEspiritos(resultado = {}) {
     }
 
     conteudo += adicionarLista(
-      "Resultado Pactos",
+      "",
       resultado.cancelamentoPactos
     );
 
@@ -120,7 +120,7 @@ export function aggregateEspiritos(resultado = {}) {
     }
 
     conteudo += adicionarLista(
-      "Resultado Espíritos",
+      "",
       resultado.liberacaoEspiritos
     );
 
@@ -143,7 +143,7 @@ export function aggregateEspiritos(resultado = {}) {
     }
 
     conteudo += adicionarLista(
-      "Resultado Energias Densas",
+      "",
       resultado.energiasDensas
     );
 
@@ -166,7 +166,7 @@ export function aggregateEspiritos(resultado = {}) {
     }
 
     conteudo += adicionarLista(
-      "Resultado Associação emocional",
+      "",
       resultado.associacaoEmocional
     );
 
@@ -182,14 +182,14 @@ export function aggregateEspiritos(resultado = {}) {
 
   if (resultado.mantras?.[10]) {
 
-    conteudo += "Psiquismo da mãe\n\n";
+    conteudo += "";
     conteudo += resultado.mantras[10].trim() + "\n\n";
 
   }
 
   if (resultado.mantras?.[11]) {
 
-    conteudo += "Psiquismo do pai\n\n";
+    conteudo += "";
     conteudo += resultado.mantras[11].trim() + "\n\n";
 
   }
@@ -211,7 +211,7 @@ export function aggregateEspiritos(resultado = {}) {
     }
 
     conteudo += adicionarLista(
-      "Resultado Miasmas",
+      "",
       resultado.miasmas
     );
 
