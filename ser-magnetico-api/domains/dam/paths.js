@@ -19,7 +19,13 @@ const paths = {
     `DAM/DESATIVACOES/DESATIVACAO-${n}.txt`,
 
   ativacoes: (n) =>
-    `DAM/ATIVACOES/ATIVACAO-${n}.txt`
+    `DAM/ATIVACOES/ATIVACAO-${n}.txt`,
+
+  mantraAtivacao:
+    `DAM/MANTRAS/MANTRA-ATIVACAO.txt`,
+
+  mantraDesativacao:
+    `DAM/MANTRAS/MANTRA-DESATIVACAO.txt`
 
 };
 
@@ -54,7 +60,24 @@ export function resolvePath(category) {
 
   const normalized = categoryMap[category];
 
-  return normalized ? paths[normalized] : null;
+  if (!normalized) return null;
+
+  return paths[normalized];
+
+}
+
+
+/**
+ * Resolve o path final para um número específico
+ */
+
+export function resolveDam(category, numero) {
+
+  const resolver = resolvePath(category);
+
+  if (!resolver) return null;
+
+  return resolver(numero);
 
 }
 
