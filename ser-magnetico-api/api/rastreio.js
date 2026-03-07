@@ -10,44 +10,30 @@ import { aggregateBioAnimal } from "../services/aggregatorBioAnimal.js";
 
 import { fetchFromGitHub } from "../services/githubService.js";
 
-
 export default async function handler(req, res) {
-
   try {
-
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
-        erro: "Método não permitido"
+        erro: "Método não permitido",
       });
     }
 
     const cursoRaw = req.body.curso || "dam";
     const dados = req.body.dados || req.body || {};
-
-    const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
+    const curso = String(cursoRaw).toLowerCase().replace(/[-_]/g, "");
 
     console.log("CURSO RECEBIDO:", cursoRaw);
     console.log("CURSO NORMALIZADO:", curso);
     console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
-
 
     let paths;
     let aggregator;
     let resultado = {};
     let mapaCategorias = {};
 
-
-    /*
-    ------------------------------------------------
-    SELEÇÃO DO CURSO
-    ------------------------------------------------
-    */
-
     switch (curso) {
-
       case "dam":
-
         paths = damPaths;
         aggregator = aggregateDAM;
 
@@ -56,7 +42,7 @@ export default async function handler(req, res) {
           areasSistemicas: {},
           areasDeAtuacao: {},
           desativacoes: {},
-          ativacoes: {}
+          ativacoes: {},
         };
 
         mapaCategorias = {
@@ -64,16 +50,12 @@ export default async function handler(req, res) {
           areasSistemicas: "areasSistemicas",
           areasDeAtuacao: "areasDeAtuacao",
           desativacoes: "desativacoes",
-          ativacoes: "ativacoes"
+          ativacoes: "ativacoes",
         };
-
         break;
-
-
 
       case "espiritos":
       case "espiritosmiasmas":
-
         paths = espiritosPaths;
         aggregator = aggregateEspiritos;
 
@@ -84,7 +66,7 @@ export default async function handler(req, res) {
           energiasDensas: {},
           associacaoEmocional: {},
           miasmas: {},
-          mantras: {}
+          mantras: {},
         };
 
         mapaCategorias = {
@@ -94,15 +76,11 @@ export default async function handler(req, res) {
           energias: "energiasDensas",
           associacoes: "associacaoEmocional",
           miasmas: "miasmas",
-          mantras: "mantras"
+          mantras: "mantras",
         };
-
         break;
 
-
-
       case "biohumano":
-
         paths = bioHumanoPaths;
         aggregator = aggregateBioHumano;
 
@@ -110,22 +88,18 @@ export default async function handler(req, res) {
           paresEmocionais: {},
           reservatorios: {},
           rastreioGeral: {},
-          sistemas: {}
+          sistemas: {},
         };
 
         mapaCategorias = {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
           rastreioGeral: "rastreioGeral",
-          sistemas: "sistemas"
+          sistemas: "sistemas",
         };
-
         break;
 
-
-
       case "bioanimal":
-
         paths = bioAnimalPaths;
         aggregator = aggregateBioAnimal;
 
@@ -133,45 +107,30 @@ export default async function handler(req, res) {
           paresEmocionais: {},
           reservatorios: {},
           rastreioGeral: {},
-          sistemas: {}
+          sistemas: {},
         };
 
         mapaCategorias = {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
           rastreioGeral: "rastreioGeral",
-          sistemas: "sistemas"
+          sistemas: "sistemas",
+          paresSistema: "paresSistema",
         };
-
         break;
 
-
-
       default:
-
         console.log("CURSO NÃO RECONHECIDO:", cursoRaw);
-
         return res.status(400).json({
           success: false,
-          erro: "Curso inválido"
+          erro: "Curso inválido",
         });
-
     }
 
-
-
-    /*
-    ------------------------------------------------
-    FUNÇÃO DE CARREGAMENTO
-    ------------------------------------------------
-    */
-
     async function carregar(categoria, numeros, resolver) {
-
       if (!numeros || !Array.isArray(numeros)) return;
 
       for (const n of numeros) {
-
         const path = resolver(n);
 
         if (!path) {
@@ -180,7 +139,6 @@ export default async function handler(req, res) {
         }
 
         try {
-
           const conteudo = await fetchFromGitHub(path);
 
           if (!conteudo) {
@@ -192,30 +150,93 @@ export default async function handler(req, res) {
             resultado[categoria] = {};
           }
 
-          resultado[categoria][n] = conteudo;
-
+          resultado[categoria][n] = conteudo.trim();
           console.log("✔ CONTEÚDO SALVO:", categoria, n);
-
         } catch (err) {
-
           console.log("Erro ao buscar:", path, err.message);
-
         }
-
       }
-
     }
-
-
 
     /*
     ------------------------------------------------
-    EXECUÇÃO DINÂMICA
+    TRATAMENTO ESPECIAL BIO ANIMAL
+    sistemas: [1,2,3]
+    paresSistema: [{ sistema: 1, par: 1 }, ...]
     ------------------------------------------------
     */
+    if (curso === "bioanimal") {
+      const sistemasRecebidos = Array.isArray(dados.sistemas) ? dados.sistemas : [];
+      const paresSistemaRecebidos = Array.isArray(dados.paresSistema) ? dados.paresSistema : [];
 
+      // índice sistema -> pares[]
+      const indiceParesPorSistema = {};
+
+      for (const item of paresSistemaRecebidos) {
+        const sistema = String(item?.sistema ?? "").trim();
+        const par = item?.par;
+
+        if (!sistema || par == null) continue;
+
+        if (!indiceParesPorSistema[sistema]) {
+          indiceParesPorSistema[sistema] = [];
+        }
+
+        indiceParesPorSistema[sistema].push(par);
+      }
+
+      // carregar sistemas
+      for (const sistema of sistemasRecebidos) {
+        try {
+          const textoSistema = await fetchFromGitHub(paths.sistemas(sistema));
+
+          resultado.sistemas[String(sistema)] = {
+            texto: (textoSistema || "").trim(),
+            pares: {},
+          };
+
+          console.log("✔ SISTEMA SALVO:", sistema);
+        } catch (err) {
+          console.log("Erro ao buscar sistema:", sistema, err.message);
+        }
+      }
+
+      // carregar pares de sistema
+      for (const sistema of Object.keys(indiceParesPorSistema)) {
+        if (!resultado.sistemas[sistema]) {
+          try {
+            const textoSistema = await fetchFromGitHub(paths.sistemas(sistema));
+
+            resultado.sistemas[sistema] = {
+              texto: (textoSistema || "").trim(),
+              pares: {},
+            };
+
+            console.log("✔ SISTEMA SALVO VIA PAR:", sistema);
+          } catch (err) {
+            console.log("Erro ao buscar sistema via par:", sistema, err.message);
+            continue;
+          }
+        }
+
+        for (const par of indiceParesPorSistema[sistema]) {
+          try {
+            const textoPar = await fetchFromGitHub(paths.paresSistema(sistema, par));
+            resultado.sistemas[sistema].pares[par] = (textoPar || "").trim();
+            console.log("✔ PAR SALVO:", sistema, par);
+          } catch (err) {
+            console.log("Erro ao buscar par de sistema:", sistema, par, err.message);
+          }
+        }
+      }
+    }
+
+    /*
+    ------------------------------------------------
+    EXECUÇÃO DINÂMICA NORMAL
+    ------------------------------------------------
+    */
     for (const categoriaRecebida in dados) {
-
       const categoriaInterna = mapaCategorias[categoriaRecebida];
 
       if (!categoriaInterna) {
@@ -223,90 +244,17 @@ export default async function handler(req, res) {
         continue;
       }
 
-
-      /*
-      ------------------------------------------------
-      TRATAMENTO ESPECIAL BIO ANIMAL
-      SISTEMAS COM PARES
-      ------------------------------------------------
-      */
-
-      if (curso === "bioanimal" && categoriaInterna === "sistemas") {
-
-        const sistemas = dados[categoriaRecebida];
-
-        for (const sistema in sistemas) {
-
-          try {
-
-            const textoSistema = await fetchFromGitHub(
-              paths.sistemas(sistema)
-            );
-
-            if (!resultado.sistemas[sistema]) {
-
-              resultado.sistemas[sistema] = {
-                texto: textoSistema,
-                pares: {}
-              };
-
-            }
-
-            const pares = sistemas[sistema];
-
-            for (const par of pares) {
-
-              const textoPar = await fetchFromGitHub(
-                paths.paresSistema(sistema, par)
-              );
-
-              resultado.sistemas[sistema].pares[par] = textoPar;
-
-              console.log("✔ PAR SALVO:", sistema, par);
-
-            }
-
-          } catch (err) {
-
-            console.log("Erro sistema/par:", sistema, err.message);
-
-          }
-
-        }
-
+      // já tratado no bloco especial do bio animal
+      if (curso === "bioanimal" && (categoriaInterna === "sistemas" || categoriaInterna === "paresSistema")) {
         continue;
-
       }
-
-
-
-      /*
-      ------------------------------------------------
-      CARREGAMENTO NORMAL
-      ------------------------------------------------
-      */
 
       const resolver = paths[categoriaInterna];
 
       if (typeof resolver === "function") {
-
-        await carregar(
-          categoriaInterna,
-          dados[categoriaRecebida],
-          resolver
-        );
-
+        await carregar(categoriaInterna, dados[categoriaRecebida], resolver);
       }
-
     }
-
-
-
-    /*
-    ------------------------------------------------
-    MANTRAS GERAIS
-    ------------------------------------------------
-    */
 
     const mantraAtivacao = paths.mantraAtivacao
       ? await fetchFromGitHub(paths.mantraAtivacao)
@@ -316,63 +264,30 @@ export default async function handler(req, res) {
       ? await fetchFromGitHub(paths.mantraDesativacao)
       : "";
 
-
-
-    /*
-    ------------------------------------------------
-    AGREGAÇÃO FINAL
-    ------------------------------------------------
-    */
-
-    const blocos = aggregator(
-      resultado,
-      mantraAtivacao,
-      mantraDesativacao
-    );
-
-    const resultadoBlocos = Array.isArray(blocos)
-      ? blocos
-      : [blocos];
-
-
-
-    /*
-    ------------------------------------------------
-    LOGS
-    ------------------------------------------------
-    */
+    const blocos = aggregator(resultado, mantraAtivacao, mantraDesativacao);
+    const resultadoBlocos = Array.isArray(blocos) ? blocos : [blocos];
 
     console.log("TOTAL BLOCOS:", resultadoBlocos.length);
-
     resultadoBlocos.forEach((b, i) => {
       console.log(`BLOCO ${i} TAMANHO:`, b.length);
     });
 
-
-
     const jsonResposta = {
       success: true,
       curso: cursoRaw,
-      resultado: resultadoBlocos
+      resultado: resultadoBlocos,
     };
 
     console.log("TAMANHO JSON:", JSON.stringify(jsonResposta).length);
 
-
-
     return res.status(200).json(jsonResposta);
-
-
   } catch (erro) {
-
     console.error("Erro rastreio:", erro);
 
     return res.status(500).json({
       success: false,
       erro: "Erro interno",
-      detalhes: erro.message
+      detalhes: erro.message,
     });
-
   }
-
 }
