@@ -1,4 +1,4 @@
-import damPaths, { resolvePath as resolveDam } from "../domains/dam/paths.js";
+import damPaths from "../domains/dam/paths.js";
 import { aggregateData } from "../services/aggregator.js";
 import { fetchFromGitHub } from "../services/githubService.js";
 
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       });
     }
 
-    let resultado = {
+    const resultado = {
       cartas: {},
       areasSistemicas: {},
       areasDeAtuacao: {},
@@ -30,37 +30,44 @@ export default async function handler(req, res) {
       ativacoes: {}
     };
 
-    async function carregar(categoria, numeros, resolver) {
+    const tarefas = [];
+
+    function carregar(categoria, numeros, mapa) {
 
       if (!numeros) return;
 
       for (const n of numeros) {
 
-        const path = resolver(categoria, n);
+        const url = mapa?.[n];
 
-        if (!path) continue;
+        if (!url) continue;
 
-        const conteudo = await fetchFromGitHub(path);
+        const tarefa = fetchFromGitHub(url)
+          .then(conteudo => {
+            if (!resultado[categoria]) resultado[categoria] = {};
+            resultado[categoria][n] = conteudo;
+          });
 
-        if (!resultado[categoria]) resultado[categoria] = {};
-
-        resultado[categoria][n] = conteudo;
+        tarefas.push(tarefa);
       }
     }
 
-    await carregar("cartas", dados.cartas, resolveDam);
-    await carregar("areasSistemicas", dados.areasSistemicas, resolveDam);
-    await carregar("areasDeAtuacao", dados.areasDeAtuacao, resolveDam);
-    await carregar("desativacoes", dados.desativacoes, resolveDam);
-    await carregar("ativacoes", dados.ativacoes, resolveDam);
+    carregar("cartas", dados.cartas, damPaths.cartas);
+    carregar("areasSistemicas", dados.areasSistemicas, damPaths.areasSistemicas);
+    carregar("areasDeAtuacao", dados.areasDeAtuacao, damPaths.areasDeAtuacao);
+    carregar("desativacoes", dados.desativacoes, damPaths.desativacoes);
+    carregar("ativacoes", dados.ativacoes, damPaths.ativacoes);
 
-    const mantraAtivacao = damPaths.mantraAtivacao
-      ? await fetchFromGitHub(damPaths.mantraAtivacao)
-      : "";
+    await Promise.all(tarefas);
 
-    const mantraDesativacao = damPaths.mantraDesativacao
-      ? await fetchFromGitHub(damPaths.mantraDesativacao)
-      : "";
+    const [mantraAtivacao, mantraDesativacao] = await Promise.all([
+      damPaths.mantraAtivacao
+        ? fetchFromGitHub(damPaths.mantraAtivacao)
+        : "",
+      damPaths.mantraDesativacao
+        ? fetchFromGitHub(damPaths.mantraDesativacao)
+        : ""
+    ]);
 
     const blocos = aggregateData(resultado, mantraAtivacao, mantraDesativacao);
 
@@ -83,4 +90,5 @@ export default async function handler(req, res) {
     });
 
   }
+
 }
