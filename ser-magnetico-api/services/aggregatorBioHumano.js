@@ -2,18 +2,16 @@ const LIMITE_BLOCO = 6000;
 
 function dividirTextoSeguro(texto = "") {
 
-  if (!texto || typeof texto !== "string") {
-    return [];
-  }
+  if (!texto || typeof texto !== "string") return [];
 
   const partes = [];
   let buffer = "";
 
-  const paragrafos = texto.split("\n");
+  const linhas = texto.split("\n");
 
-  for (const p of paragrafos) {
+  for (const l of linhas) {
 
-    const linha = p + "\n";
+    const linha = l + "\n";
 
     if ((buffer + linha).length > LIMITE_BLOCO) {
 
@@ -28,9 +26,7 @@ function dividirTextoSeguro(texto = "") {
 
   }
 
-  if (buffer.trim().length > 0) {
-    partes.push(buffer.trim());
-  }
+  if (buffer.trim()) partes.push(buffer.trim());
 
   return partes;
 }
@@ -60,11 +56,12 @@ export function aggregateBioHumano(resultado) {
   }
 
   // categorias simples
+
   adicionarCategoria("Pares Emocionais", "paresEmocionais");
   adicionarCategoria("Reservatórios", "reservatorios");
   adicionarCategoria("Rastreio Geral", "rastreioGeral");
 
-  // SISTEMAS (estrutura especial)
+  // SISTEMAS
 
   if (resultado.sistemas) {
 
@@ -72,25 +69,29 @@ export function aggregateBioHumano(resultado) {
 
     for (const sistema of Object.keys(resultado.sistemas)) {
 
-      const s = resultado.sistemas[sistema];
+      const textoSistema = resultado.sistemas[sistema];
 
-      if (s.texto) {
+      const partesSistema = dividirTextoSeguro(textoSistema);
 
-        const partesSistema = dividirTextoSeguro(s.texto);
+      blocos.push(...partesSistema);
 
-        blocos.push(...partesSistema);
+      // pares do sistema
 
-      }
+      if (resultado.paresSistema) {
 
-      if (s.pares) {
+        for (const chave of Object.keys(resultado.paresSistema)) {
 
-        for (const par of Object.keys(s.pares)) {
+          const [s, par] = chave.split("-");
 
-          const textoPar = s.pares[par];
+          if (String(s) === String(sistema)) {
 
-          const partesPar = dividirTextoSeguro(textoPar);
+            const textoPar = resultado.paresSistema[chave];
 
-          blocos.push(...partesPar);
+            const partesPar = dividirTextoSeguro(textoPar);
+
+            blocos.push(...partesPar);
+
+          }
 
         }
 
