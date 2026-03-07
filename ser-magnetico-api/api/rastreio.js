@@ -223,6 +223,69 @@ export default async function handler(req, res) {
         continue;
       }
 
+
+      /*
+      ------------------------------------------------
+      TRATAMENTO ESPECIAL BIO ANIMAL
+      SISTEMAS COM PARES
+      ------------------------------------------------
+      */
+
+      if (curso === "bioanimal" && categoriaInterna === "sistemas") {
+
+        const sistemas = dados[categoriaRecebida];
+
+        for (const sistema in sistemas) {
+
+          try {
+
+            const textoSistema = await fetchFromGitHub(
+              paths.sistemas(sistema)
+            );
+
+            if (!resultado.sistemas[sistema]) {
+
+              resultado.sistemas[sistema] = {
+                texto: textoSistema,
+                pares: {}
+              };
+
+            }
+
+            const pares = sistemas[sistema];
+
+            for (const par of pares) {
+
+              const textoPar = await fetchFromGitHub(
+                paths.paresSistema(sistema, par)
+              );
+
+              resultado.sistemas[sistema].pares[par] = textoPar;
+
+              console.log("✔ PAR SALVO:", sistema, par);
+
+            }
+
+          } catch (err) {
+
+            console.log("Erro sistema/par:", sistema, err.message);
+
+          }
+
+        }
+
+        continue;
+
+      }
+
+
+
+      /*
+      ------------------------------------------------
+      CARREGAMENTO NORMAL
+      ------------------------------------------------
+      */
+
       const resolver = paths[categoriaInterna];
 
       if (typeof resolver === "function") {
@@ -241,7 +304,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    MANTRAS GERAIS (se existirem)
+    MANTRAS GERAIS
     ------------------------------------------------
     */
 
