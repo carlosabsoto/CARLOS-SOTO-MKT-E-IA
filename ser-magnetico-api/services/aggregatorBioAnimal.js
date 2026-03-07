@@ -1,72 +1,121 @@
-const LIMITE_BLOCO = 6000;
+function dividirEmBlocos(texto="",tamanho=12000){
 
-function dividirTextoSeguro(texto = "") {
+ const partes=[]
+ let inicio=0
 
-  const partes = [];
-  let buffer = "";
+ while(inicio<texto.length){
 
-  const paragrafos = texto.split("\n");
+  partes.push(texto.slice(inicio,inicio+tamanho))
+  inicio+=tamanho
 
-  for (const p of paragrafos) {
+ }
 
-    const linha = p + "\n";
-
-    if ((buffer + linha).length > LIMITE_BLOCO) {
-
-      partes.push(buffer.trim());
-      buffer = linha;
-
-    } else {
-
-      buffer += linha;
-
-    }
-
-  }
-
-  if (buffer.trim().length > 0) {
-    partes.push(buffer.trim());
-  }
-
-  return partes;
+ return partes
 
 }
 
-export function aggregateBioAnimal(resultado, mantraAtivacao, mantraDesativacao) {
 
-  const blocos = [];
 
-  function adicionarCategoria(titulo, categoria) {
+export function aggregateBioAnimal(resultado={}){
 
-    const itens = resultado[categoria];
+ let conteudo=""
 
-    if (!itens || Object.keys(itens).length === 0) return;
 
-    blocos.push(titulo);
 
-    for (const key of Object.keys(itens)) {
+ /*
+ -------------------------
+ PARES EMOCIONAIS
+ -------------------------
+ */
 
-      const partes = dividirTextoSeguro(itens[key]);
+ const emocionais=Object.values(resultado.paresEmocionais||{})
 
-      blocos.push(...partes);
+ if(emocionais.length){
 
-    }
+  conteudo+="Pares emocionais\n\n"
 
-  }
+  emocionais.forEach(v=>{
+   conteudo+=v+"\n"
+  })
 
-  if (mantraAtivacao) {
-    blocos.push("MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao);
-  }
+  conteudo+="\n"
 
-  adicionarCategoria("Pares Emocionais", "paresEmocionais");
-  adicionarCategoria("Reservatórios", "reservatorios");
-  adicionarCategoria("Rastreio Geral", "rastreioGeral");
-  adicionarCategoria("Sistemas", "sistemas");
+ }
 
-  if (mantraDesativacao) {
-    blocos.push("MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao);
-  }
 
-  return blocos;
+
+ /*
+ -------------------------
+ RESERVATÓRIOS
+ -------------------------
+ */
+
+ const reservatorios=Object.values(resultado.reservatorios||{})
+
+ if(reservatorios.length){
+
+  conteudo+="Reservatórios\n\n"
+
+  reservatorios.forEach(v=>{
+   conteudo+=v+"\n"
+  })
+
+  conteudo+="\n"
+
+ }
+
+
+
+ /*
+ -------------------------
+ RASTREIO GERAL
+ -------------------------
+ */
+
+ const geral=Object.values(resultado.rastreioGeral||{})
+
+ if(geral.length){
+
+  conteudo+="Rastreio geral\n\n"
+
+  geral.forEach(v=>{
+   conteudo+=v+"\n"
+  })
+
+  conteudo+="\n"
+
+ }
+
+
+
+ /*
+ -------------------------
+ SISTEMAS
+ -------------------------
+ */
+
+ for(const sistema in resultado.sistemas){
+
+  const dadosSistema=resultado.sistemas[sistema]
+
+  if(!dadosSistema) continue
+
+  conteudo+=dadosSistema.texto+"\n\n"
+
+  const pares=dadosSistema.pares||{}
+
+  Object.values(pares).forEach(par=>{
+
+   conteudo+=par+"\n"
+
+  })
+
+  conteudo+="\n"
+
+ }
+
+
+
+ return dividirEmBlocos(conteudo)
 
 }
