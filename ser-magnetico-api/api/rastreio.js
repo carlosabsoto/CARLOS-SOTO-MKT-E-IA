@@ -13,14 +13,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const { curso = "dam", dados } = req.body;
-
-    if (!dados) {
-      return res.status(400).json({
-        success: false,
-        erro: "Campo 'dados' é obrigatório"
-      });
-    }
+    // aceita body com ou sem "dados"
+    const curso = req.body.curso || "dam";
+    const dados = req.body.dados || req.body;
 
     const resultado = {
       cartas: {},
@@ -32,20 +27,22 @@ export default async function handler(req, res) {
 
     const tarefas = [];
 
-    function carregar(categoria, numeros, mapa) {
+    function carregar(categoria, numeros, resolver) {
 
       if (!numeros) return;
 
       for (const n of numeros) {
 
-        const url = mapa?.[n];
+        const path = resolver(n);
 
-        if (!url) continue;
+        if (!path) continue;
 
-        const tarefa = fetchFromGitHub(url)
+        const tarefa = fetchFromGitHub(path)
           .then(conteudo => {
-            if (!resultado[categoria]) resultado[categoria] = {};
             resultado[categoria][n] = conteudo;
+          })
+          .catch(err => {
+            console.log("Erro ao buscar:", path, err.message);
           });
 
         tarefas.push(tarefa);
@@ -82,6 +79,8 @@ export default async function handler(req, res) {
     });
 
   } catch (erro) {
+
+    console.error("Erro rastreio:", erro);
 
     return res.status(500).json({
       success: false,
