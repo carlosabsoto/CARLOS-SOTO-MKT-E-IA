@@ -1,72 +1,28 @@
-const LIMITE_BLOCO = 6000;
+function dividirTextoSeguro(texto) {
 
-function dividirTextoSeguro(texto = "") {
+  if (!texto || typeof texto !== "string") {
+    return []
+  }
 
-  const partes = [];
-  let buffer = "";
+  const MAX = 12000
 
-  const paragrafos = texto.split("\n");
+  const partes = texto.split("\n\n")
 
-  for (const p of paragrafos) {
+  const blocos = []
+  let atual = ""
 
-    const linha = p + "\n";
+  for (const p of partes) {
 
-    if ((buffer + linha).length > LIMITE_BLOCO) {
-
-      partes.push(buffer.trim());
-      buffer = linha;
-
+    if ((atual + p).length > MAX) {
+      blocos.push(atual)
+      atual = p
     } else {
-
-      buffer += linha;
-
+      atual += "\n\n" + p
     }
 
   }
 
-  if (buffer.trim().length > 0) {
-    partes.push(buffer.trim());
-  }
+  if (atual) blocos.push(atual)
 
-  return partes;
-
-}
-
-export function aggregateBioHumano(resultado, mantraAtivacao, mantraDesativacao) {
-
-  const blocos = [];
-
-  function adicionarCategoria(titulo, categoria) {
-
-    const itens = resultado[categoria];
-
-    if (!itens || Object.keys(itens).length === 0) return;
-
-    blocos.push(titulo);
-
-    for (const key of Object.keys(itens)) {
-
-      const partes = dividirTextoSeguro(itens[key]);
-
-      blocos.push(...partes);
-
-    }
-
-  }
-
-  if (mantraAtivacao) {
-    blocos.push("MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao);
-  }
-
-  adicionarCategoria("Pares Emocionais", "paresEmocionais");
-  adicionarCategoria("Reservatórios", "reservatorios");
-  adicionarCategoria("Rastreio Geral", "rastreioGeral");
-  adicionarCategoria("Sistemas", "sistemas");
-
-  if (mantraDesativacao) {
-    blocos.push("MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao);
-  }
-
-  return blocos;
-
+  return blocos
 }
