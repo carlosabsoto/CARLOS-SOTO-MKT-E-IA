@@ -1,60 +1,37 @@
-export function dividirEmBlocos(texto = "", tamanho = 20000) {
-  const partes = [];
-  let inicio = 0;
-
-  while (inicio < texto.length) {
-    partes.push(texto.slice(inicio, inicio + tamanho));
-    inicio += tamanho;
-  }
-
-  return partes;
-}
-
 export function aggregateData(resultado, mantraAtivacao, mantraDesativacao) {
 
-  let conteudo = "";
+  const blocos = [];
 
-  if (resultado.cartas) {
-    for (const key in resultado.cartas) {
-      conteudo += resultado.cartas[key] + "\n\n";
-    }
-  }
-
-  if (resultado.areasSistemicas) {
-    for (const key in resultado.areasSistemicas) {
-      conteudo += resultado.areasSistemicas[key] + "\n\n";
-    }
-  }
-
-  if (resultado.areasDeAtuacao) {
-    for (const key in resultado.areasDeAtuacao) {
-      conteudo += resultado.areasDeAtuacao[key] + "\n\n";
-    }
-  }
-
-  if (resultado.desativacoes) {
-    for (const key in resultado.desativacoes) {
-      conteudo += resultado.desativacoes[key] + "\n\n";
-    }
-  }
-
-  if (resultado.ativacoes) {
-    for (const key in resultado.ativacoes) {
-      conteudo += resultado.ativacoes[key] + "\n\n";
-    }
-  }
-
+  // mantra de ativação primeiro
   if (mantraAtivacao) {
-    conteudo += "\nMANTRA DE ATIVAÇÃO\n";
-    conteudo += mantraAtivacao + "\n\n";
+    blocos.push(
+      "MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao
+    );
   }
 
+  function adicionarCategoria(titulo, categoria) {
+
+    const itens = resultado[categoria];
+
+    if (!itens || Object.keys(itens).length === 0) return;
+
+    const texto = Object.values(itens).join("\n\n");
+
+    blocos.push(`${titulo}\n\n${texto}`);
+  }
+
+  adicionarCategoria("Cartas da Consciência", "cartas");
+  adicionarCategoria("Áreas Sistêmicas", "areasSistemicas");
+  adicionarCategoria("Áreas de Atuação", "areasDeAtuacao");
+  adicionarCategoria("Desativações", "desativacoes");
+  adicionarCategoria("Ativações", "ativacoes");
+
+  // mantra de desativação por último
   if (mantraDesativacao) {
-    conteudo += "\nMANTRA DE DESATIVAÇÃO\n";
-    conteudo += mantraDesativacao + "\n\n";
+    blocos.push(
+      "MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao
+    );
   }
-
-  const blocos = dividirEmBlocos(conteudo, 20000);
 
   return blocos;
 }
