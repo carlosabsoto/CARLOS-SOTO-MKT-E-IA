@@ -1,22 +1,8 @@
-import espiritosPaths, { resolvePath as resolveEspiritos } from "../domains/espiritos-miasmas/paths.js";
 import damPaths, { resolvePath as resolveDam } from "../domains/dam/paths.js";
-import bioHumanoPaths, { resolvePath as resolveBioHumano } from "../domains/bio-humano/paths.js";
-import bioAnimalPaths, { resolvePath as resolveBioAnimal } from "../domains/bio-animal/paths.js";
-
 import { aggregateData } from "../services/aggregator.js";
 import { fetchFromGitHub } from "../services/githubService.js";
 
-
-function normalize(text = "") {
-  return String(text)
-    .replace(/\r\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n");
-}
-
-
 export default async function handler(req, res) {
-
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   try {
 
@@ -27,198 +13,74 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log("BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
+    const { curso = "dam", dados } = req.body;
 
-    const body = req.body || {};
-    let { curso, dados } = body;
-
-    // 🔒 curso obrigatório
-    if (!curso) {
+    if (!dados) {
       return res.status(400).json({
         success: false,
-        erro: "Campo 'curso' é obrigatório"
+        erro: "Campo 'dados' é obrigatório"
       });
     }
 
-    // 🔒 validação de dados
-    if (!dados || typeof dados !== "object") {
-      return res.status(400).json({
-        success: false,
-        erro: "Campo 'dados' inválido ou ausente"
-      });
-    }
-
-    if (Object.keys(dados).length === 0) {
-      return res.status(400).json({
-        success: false,
-        erro: "Nenhum dado de rastreio informado"
-      });
-    }
-
-    const rawCurso = String(curso)
-      .trim()
-      .toLowerCase()
-      .replace(/[_\s]/g, "-")
-      .replace(/--+/g, "-");
-
-
-    const cursoMap = {
-
-      dam: "dam",
-
-      "bio-humano": "bio-humano",
-      biohumano: "bio-humano",
-
-      "bio-animal": "bio-animal",
-      bioanimal: "bio-animal",
-
-      "espiritos-miasmas": "espiritos-miasmas",
-      espiritosmiasmas: "espiritos-miasmas"
-
+    let resultado = {
+      cartas: {},
+      areasSistemicas: {},
+      areasDeAtuacao: {},
+      desativacoes: {},
+      ativacoes: {}
     };
 
+    async function carregar(categoria, numeros, resolver) {
 
-    const cursoKey = cursoMap[rawCurso];
+      if (!numeros) return;
 
+      for (const n of numeros) {
 
-    const domains = {
+        const path = resolver(categoria, n);
 
-      "espiritos-miasmas": {
-        paths: espiritosPaths,
-        resolve: resolveEspiritos
-      },
+        if (!path) continue;
 
-      dam: {
-        paths: damPaths,
-        resolve: resolveDam
-      },
+        const conteudo = await fetchFromGitHub(path);
 
-      "bio-humano": {
-        paths: bioHumanoPaths,
-        resolve: resolveBioHumano
-      },
+        if (!resultado[categoria]) resultado[categoria] = {};
 
-      "bio-animal": {
-        paths: bioAnimalPaths,
-        resolve: resolveBioAnimal
+        resultado[categoria][n] = conteudo;
       }
-
-    };
-
-
-    const domain = domains[cursoKey];
-
-
-    if (!domain) {
-
-      console.error("Curso inválido recebido:", rawCurso);
-
-      return res.status(400).json({
-        success: false,
-        erro: `Curso inválido: ${rawCurso}`
-      });
-
     }
 
+    await carregar("cartas", dados.cartas, resolveDam);
+    await carregar("areasSistemicas", dados.areasSistemicas, resolveDam);
+    await carregar("areasDeAtuacao", dados.areasDeAtuacao, resolveDam);
+    await carregar("desativacoes", dados.desativacoes, resolveDam);
+    await carregar("ativacoes", dados.ativacoes, resolveDam);
 
-    let resultado = {};
+    const mantraAtivacao = damPaths.mantraAtivacao
+      ? await fetchFromGitHub(damPaths.mantraAtivacao)
+      : "";
 
-    try {
+    const mantraDesativacao = damPaths.mantraDesativacao
+      ? await fetchFromGitHub(damPaths.mantraDesativacao)
+      : "";
 
-      resultado = await aggregateData(
-        dados,
-        domain.paths,
-        domain.resolve
-      ) || {};
-
-    } catch (err) {
-
-      console.error("Erro no aggregateData:", err);
-
-      return res.status(500).json({
-        success: false,
-        erro: "Erro ao processar os dados de rastreio",
-        retry: true
-      });
-
-    }
-
-
-    // 🔒 evita retorno vazio
-    if (!resultado || Object.keys(resultado).length === 0) {
-
-      console.error("Resultado vazio");
-
-      return res.status(500).json({
-        success: false,
-        erro: "Nenhum conteúdo encontrado",
-        retry: true
-      });
-
-    }
-
-
-    // 🔥 tratamento especial DAM (mantras)
-    if (cursoKey === "dam") {
-
-      let mantraAtivacao = "";
-      let mantraDesativacao = "";
-
-      try {
-
-        const [ativacao, desativacao] = await Promise.all([
-
-          fetchFromGitHub("DAM/MANTRAS/MANTRA-ATIVACAO.txt"),
-          fetchFromGitHub("DAM/MANTRAS/MANTRA-DESATIVACAO.txt")
-
-        ]);
-
-        mantraAtivacao = normalize(ativacao);
-        mantraDesativacao = normalize(desativacao);
-
-      } catch (err) {
-
-        console.error("Erro ao buscar mantras:", err);
-
-      }
-
-
-      return res.status(200).json({
-
-        success: true,
-        curso: cursoKey,
-        resultado,
-
-        mantras: {
-          ativacao: mantraAtivacao,
-          desativacao: mantraDesativacao
-        }
-
-      });
-
-    }
-
-
-    // 📦 retorno padrão (BIO HUMANO, BIO ANIMAL, ESPÍRITOS)
+    const blocos = aggregateData(resultado, mantraAtivacao, mantraDesativacao);
 
     return res.status(200).json({
-
       success: true,
-      curso: cursoKey,
-      resultado
-
+      curso,
+      resultado: blocos,
+      mantras: {
+        ativacao: mantraAtivacao,
+        desativacao: mantraDesativacao
+      }
     });
 
-  } catch (error) {
-
-    console.error("Erro inesperado no rastreio:", error);
+  } catch (erro) {
 
     return res.status(500).json({
       success: false,
-      erro: "Erro interno do servidor",
-      retry: true
+      erro: "Erro interno",
+      detalhes: erro.message
     });
 
   }
-
 }
