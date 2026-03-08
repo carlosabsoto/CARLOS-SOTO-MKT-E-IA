@@ -94,10 +94,10 @@ export default async function handler(req, res) {
 
 
       case "biohumano":
-      
+
         paths = bioHumanoPaths;
         aggregator = aggregateBioHumano;
-      
+
         resultado = {
           paresEmocionais: {},
           reservatorios: {},
@@ -105,14 +105,14 @@ export default async function handler(req, res) {
           sistemas: {},
           protocolos: {}
         };
-      
+
         mapaCategorias = {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
           rastreioGeral: "rastreioGeral",
           protocolos: "protocolos"
         };
-      
+
       break;
 
 
@@ -141,12 +141,42 @@ export default async function handler(req, res) {
 
       default:
 
-        console.log("CURSO NÃO RECONHECIDO:", cursoRaw);
-
         return res.status(400).json({
           success: false,
           erro: "Curso inválido"
         });
+
+    }
+
+
+
+    /*
+    ------------------------------------------------
+    INFERIR SISTEMAS A PARTIR DOS PARES
+    ------------------------------------------------
+    */
+
+    if (curso === "biohumano" || curso === "bioanimal") {
+
+      if (!Array.isArray(dados.sistemas)) {
+        dados.sistemas = [];
+      }
+
+      if (Array.isArray(dados.paresSistema)) {
+
+        for (const item of dados.paresSistema) {
+
+          const s = Number(item?.sistema);
+
+          if (!isNaN(s) && !dados.sistemas.includes(s)) {
+            dados.sistemas.push(s);
+          }
+
+        }
+
+      }
+
+      dados.sistemas = [...new Set(dados.sistemas)].sort((a,b)=>a-b);
 
     }
 
@@ -165,13 +195,11 @@ export default async function handler(req, res) {
       for (const n of numeros) {
 
         const path = resolver(n);
-
         if (!path) continue;
 
         try {
 
           const conteudo = await fetchFromGitHub(path);
-
           if (!conteudo) continue;
 
           if (!resultado[categoria]) resultado[categoria] = {};
@@ -194,20 +222,20 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    SISTEMAS + PARES (BIO HUMANO / BIO ANIMAL)
+    SISTEMAS + PARES
     ------------------------------------------------
     */
 
     if (curso === "biohumano" || curso === "bioanimal") {
 
-      const sistemas = Array.isArray(dados.sistemas) ? dados.sistemas : [];
-      const paresSistema = Array.isArray(dados.paresSistema) ? dados.paresSistema : [];
+      const sistemas = dados.sistemas || [];
+      const paresSistema = dados.paresSistema || [];
 
       const indice = {};
 
       for (const item of paresSistema) {
 
-        const sistema = String(item?.sistema ?? "");
+        const sistema = String(item?.sistema);
         const par = item?.par;
 
         if (!sistema || par == null) continue;
@@ -282,7 +310,6 @@ export default async function handler(req, res) {
     for (const categoriaRecebida in dados) {
 
       const categoriaInterna = mapaCategorias[categoriaRecebida];
-
       if (!categoriaInterna) continue;
 
       const resolver = paths[categoriaInterna];
