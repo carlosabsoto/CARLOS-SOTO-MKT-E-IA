@@ -1,133 +1,86 @@
-const LIMITE = 12000;
+const LIMITE_BLOCO = 8000;
 
-function dividirTexto(texto = "") {
+function dividirTextoIntegral(texto = "") {
+  if (!texto || typeof texto !== "string") return [];
 
-  const partes = [];
+  const textoLimpo = texto.trim();
+  if (!textoLimpo) return [];
 
-  if (!texto) return partes;
-
-  if (texto.length <= LIMITE) {
-    partes.push(texto.trim());
-    return partes;
+  if (textoLimpo.length <= LIMITE_BLOCO) {
+    return [textoLimpo];
   }
-
-  let inicio = 0;
-
-  while (inicio < texto.length) {
-
-    partes.push(
-      texto.slice(inicio, inicio + LIMITE).trim()
-    );
-
-    inicio += LIMITE;
-
-  }
-
-  return partes;
-}
-
-export function aggregateBioHumano(resultado) {
 
   const blocos = [];
+  let restante = textoLimpo;
 
+  while (restante.length > LIMITE_BLOCO) {
+    let corte = restante.lastIndexOf("\n\n", LIMITE_BLOCO);
 
-
-  /* -----------------------------
-  PARES EMOCIONAIS
-  ----------------------------- */
-
-  if (resultado.paresEmocionais && Object.keys(resultado.paresEmocionais).length) {
-
-    blocos.push("PARES EMOCIONAIS");
-
-    for (const k of Object.keys(resultado.paresEmocionais)) {
-
-      const texto = resultado.paresEmocionais[k];
-
-      blocos.push(...dividirTexto(texto));
-
+    if (corte === -1) {
+      corte = restante.lastIndexOf("\n", LIMITE_BLOCO);
     }
 
+    if (corte === -1) {
+      corte = LIMITE_BLOCO;
+    }
+
+    const parte = restante.slice(0, corte).trim();
+
+    if (parte) {
+      blocos.push(parte);
+    }
+
+    restante = restante.slice(corte).trim();
   }
 
-
-
-  /* -----------------------------
-  RESERVATÓRIOS
-  ----------------------------- */
-
-  if (resultado.reservatorios && Object.keys(resultado.reservatorios).length) {
-
-    blocos.push("RESERVATÓRIOS");
-
-    for (const k of Object.keys(resultado.reservatorios)) {
-
-      const texto = resultado.reservatorios[k];
-
-      blocos.push(...dividirTexto(texto));
-
-    }
-
-  }
-
-
-
-  /* -----------------------------
-  RASTREIO GERAL
-  ----------------------------- */
-
-  if (resultado.rastreioGeral && Object.keys(resultado.rastreioGeral).length) {
-
-    blocos.push("RASTREIO GERAL");
-
-    for (const k of Object.keys(resultado.rastreioGeral)) {
-
-      const texto = resultado.rastreioGeral[k];
-
-      blocos.push(...dividirTexto(texto));
-
-    }
-
-  }
-
-
-
-  /* -----------------------------
-  SISTEMAS
-  ----------------------------- */
-
-  if (resultado.sistemas && Object.keys(resultado.sistemas).length) {
-
-    blocos.push("SISTEMAS");
-
-    for (const sistema of Object.keys(resultado.sistemas)) {
-
-      const dadosSistema = resultado.sistemas[sistema];
-
-      if (!dadosSistema) continue;
-
-      if (dadosSistema.texto) {
-
-        blocos.push(...dividirTexto(dadosSistema.texto));
-
-      }
-
-      if (dadosSistema.pares) {
-
-        for (const par of Object.keys(dadosSistema.pares)) {
-
-          const textoPar = dadosSistema.pares[par];
-
-          blocos.push(...dividirTexto(textoPar));
-
-        }
-
-      }
-
-    }
-
+  if (restante) {
+    blocos.push(restante);
   }
 
   return blocos;
+}
 
+function adicionarCategoriaIntegral(blocos, titulo, itens) {
+  if (!itens || Object.keys(itens).length === 0) return;
+
+  blocos.push(titulo);
+
+  for (const chave of Object.keys(itens)) {
+    const texto = itens[chave];
+    blocos.push(...dividirTextoIntegral(texto));
+  }
+}
+
+export function aggregateBioHumano(resultado) {
+  const blocos = [];
+
+  adicionarCategoriaIntegral(blocos, "PARES EMOCIONAIS", resultado.paresEmocionais);
+  adicionarCategoriaIntegral(blocos, "RESERVATÓRIOS", resultado.reservatorios);
+  adicionarCategoriaIntegral(blocos, "RASTREIO GERAL", resultado.rastreioGeral);
+
+  if (resultado.protocolos && Object.keys(resultado.protocolos).length > 0) {
+    adicionarCategoriaIntegral(blocos, "COMPLEXOS E PROTOCOLOS", resultado.protocolos);
+  }
+
+  if (resultado.sistemas && Object.keys(resultado.sistemas).length > 0) {
+    blocos.push("SISTEMAS");
+
+    for (const sistema of Object.keys(resultado.sistemas)) {
+      const dadosSistema = resultado.sistemas[sistema];
+      if (!dadosSistema) continue;
+
+      if (dadosSistema.texto) {
+        blocos.push(...dividirTextoIntegral(dadosSistema.texto));
+      }
+
+      if (dadosSistema.pares && Object.keys(dadosSistema.pares).length > 0) {
+        for (const par of Object.keys(dadosSistema.pares)) {
+          const textoPar = dadosSistema.pares[par];
+          blocos.push(...dividirTextoIntegral(textoPar));
+        }
+      }
+    }
+  }
+
+  return blocos;
 }
