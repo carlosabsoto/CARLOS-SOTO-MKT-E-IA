@@ -94,23 +94,25 @@ export default async function handler(req, res) {
 
 
       case "biohumano":
-
+      
         paths = bioHumanoPaths;
         aggregator = aggregateBioHumano;
-
+      
         resultado = {
           paresEmocionais: {},
           reservatorios: {},
           rastreioGeral: {},
-          sistemas: {}
+          sistemas: {},
+          protocolos: {}
         };
-
+      
         mapaCategorias = {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
-          rastreioGeral: "rastreioGeral"
+          rastreioGeral: "rastreioGeral",
+          protocolos: "protocolos"
         };
-
+      
       break;
 
 
