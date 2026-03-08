@@ -1,21 +1,23 @@
+const BASE = "BIO-HUMANO";
+
 export default {
 
-  paresEmocionais: (n) =>
-    `BIO-HUMANO/PARES-EMOCIONAIS/PAR-EMOCIONAL-${n}.txt`,
+  paresEmocionais: (numero) =>
+    `${BASE}/PARES-EMOCIONAIS/PAR-EMOCIONAL-${numero}.txt`,
 
-  reservatorios: (n) =>
-    `BIO-HUMANO/RESERVATORIOS/RESERVATORIO-${n}.txt`,
+  reservatorios: (numero) =>
+    `${BASE}/RESERVATORIOS/RESERVATORIO-${numero}.txt`,
 
-  rastreioGeral: (n) =>
-    `BIO-HUMANO/RASTREIO-GERAL/RASTREIO-GERAL-${n}.txt`,
+  rastreioGeral: (numero) =>
+    `${BASE}/RASTREIO-GERAL/RASTREIO-GERAL-${numero}.txt`,
 
-  sistemas: (n) =>
-    `BIO-HUMANO/SISTEMAS/SISTEMA-${n}.txt`,
+  sistemas: (numero) =>
+    `${BASE}/SISTEMAS/SISTEMA-${numero}.txt`,
 
   paresSistema: (sistema, par) =>
-    `BIO-HUMANO/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.txt`,
+    `${BASE}/SISTEMAS/PARES/PAR-SISTEMA-${sistema}-${par}.txt`,
 
-  protocolos: (n) =>
-    `BIO-HUMANO/PROTOCOLOS/PROTOCOLO-${n}.md`
-  
+  protocolos: (numero) =>
+    `${BASE}/PROTOCOLOS/PROTOCOLO-${numero}.md`
+
 };
