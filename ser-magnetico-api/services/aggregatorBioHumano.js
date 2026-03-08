@@ -1,4 +1,4 @@
-const LIMITE = 8000;
+const LIMITE = 12000;
 
 function dividirTexto(texto = "") {
 
