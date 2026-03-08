@@ -1,31 +1,11 @@
-const LIMITE_BLOCO = 6000;
+const LIMITE_BLOCO = 12000;
 
 function dividirTextoSeguro(texto = "") {
 
   const partes = [];
-  let buffer = "";
 
-  const paragrafos = texto.split("\n");
-
-  for (const p of paragrafos) {
-
-    const linha = p + "\n";
-
-    if ((buffer + linha).length > LIMITE_BLOCO) {
-
-      partes.push(buffer.trim());
-      buffer = linha;
-
-    } else {
-
-      buffer += linha;
-
-    }
-
-  }
-
-  if (buffer.trim().length > 0) {
-    partes.push(buffer.trim());
+  for (let i = 0; i < texto.length; i += LIMITE_BLOCO) {
+    partes.push(texto.slice(i, i + LIMITE_BLOCO));
   }
 
   return partes;
@@ -34,7 +14,11 @@ function dividirTextoSeguro(texto = "") {
 
 export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
-  const blocos = [];
+  let textoFinal = "";
+
+  if (mantraAtivacao) {
+    textoFinal += "MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao + "\n\n";
+  }
 
   function adicionarCategoria(titulo, categoria) {
 
@@ -42,20 +26,12 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
     if (!itens || Object.keys(itens).length === 0) return;
 
-    blocos.push(titulo);
+    textoFinal += titulo + "\n\n";
 
     for (const key of Object.keys(itens)) {
-
-      const partes = dividirTextoSeguro(itens[key]);
-
-      blocos.push(...partes);
-
+      textoFinal += itens[key] + "\n\n";
     }
 
-  }
-
-  if (mantraAtivacao) {
-    blocos.push("MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao);
   }
 
   adicionarCategoria("Cartas da Consciência", "cartas");
@@ -65,9 +41,9 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
   adicionarCategoria("Ativações", "ativacoes");
 
   if (mantraDesativacao) {
-    blocos.push("MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao);
+    textoFinal += "MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao;
   }
 
-  return blocos;
+  return dividirTextoSeguro(textoFinal);
 
 }
