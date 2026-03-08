@@ -54,18 +54,58 @@ function adicionarCategoriaIntegral(blocos, titulo, itens) {
 export function aggregateBioHumano(resultado) {
   const blocos = [];
 
-  adicionarCategoriaIntegral(blocos, "PARES EMOCIONAIS", resultado.paresEmocionais);
-  adicionarCategoriaIntegral(blocos, "RESERVATÓRIOS", resultado.reservatorios);
-  adicionarCategoriaIntegral(blocos, "RASTREIO GERAL", resultado.rastreioGeral);
+  /*
+  1️⃣ COMPLEXOS E PROTOCOLOS
+  */
 
   if (resultado.protocolos && Object.keys(resultado.protocolos).length > 0) {
-    adicionarCategoriaIntegral(blocos, "COMPLEXOS E PROTOCOLOS", resultado.protocolos);
+    adicionarCategoriaIntegral(
+      blocos,
+      "COMPLEXOS E PROTOCOLOS",
+      resultado.protocolos
+    );
   }
 
+  /*
+  2️⃣ PARES EMOCIONAIS
+  */
+
+  adicionarCategoriaIntegral(
+    blocos,
+    "PARES EMOCIONAIS",
+    resultado.paresEmocionais
+  );
+
+  /*
+  3️⃣ RESERVATÓRIOS
+  */
+
+  adicionarCategoriaIntegral(
+    blocos,
+    "RESERVATÓRIOS",
+    resultado.reservatorios
+  );
+
+  /*
+  4️⃣ RASTREIO GERAL
+  */
+
+  adicionarCategoriaIntegral(
+    blocos,
+    "RASTREIO GERAL",
+    resultado.rastreioGeral
+  );
+
+  /*
+  5️⃣ SISTEMAS
+  */
+
   if (resultado.sistemas && Object.keys(resultado.sistemas).length > 0) {
+
     blocos.push("SISTEMAS");
 
     for (const sistema of Object.keys(resultado.sistemas)) {
+
       const dadosSistema = resultado.sistemas[sistema];
       if (!dadosSistema) continue;
 
@@ -74,12 +114,18 @@ export function aggregateBioHumano(resultado) {
       }
 
       if (dadosSistema.pares && Object.keys(dadosSistema.pares).length > 0) {
+
         for (const par of Object.keys(dadosSistema.pares)) {
+
           const textoPar = dadosSistema.pares[par];
           blocos.push(...dividirTextoIntegral(textoPar));
+
         }
+
       }
+
     }
+
   }
 
   return blocos;
