@@ -108,9 +108,7 @@ export default async function handler(req, res) {
         mapaCategorias = {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
-          rastreioGeral: "rastreioGeral",
-          sistemas: "sistemas",
-          paresSistema: "paresSistema"
+          rastreioGeral: "rastreioGeral"
         };
 
       break;
@@ -132,9 +130,7 @@ export default async function handler(req, res) {
         mapaCategorias = {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
-          rastreioGeral: "rastreioGeral",
-          sistemas: "sistemas",
-          paresSistema: "paresSistema"
+          rastreioGeral: "rastreioGeral"
         };
 
       break;
@@ -168,23 +164,15 @@ export default async function handler(req, res) {
 
         const path = resolver(n);
 
-        if (!path) {
-          console.log("Path não encontrado:", categoria, n);
-          continue;
-        }
+        if (!path) continue;
 
         try {
 
           const conteudo = await fetchFromGitHub(path);
 
-          if (!conteudo) {
-            console.log("Arquivo vazio:", path);
-            continue;
-          }
+          if (!conteudo) continue;
 
-          if (!resultado[categoria]) {
-            resultado[categoria] = {};
-          }
+          if (!resultado[categoria]) resultado[categoria] = {};
 
           resultado[categoria][n] = conteudo;
 
@@ -204,8 +192,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    TRATAMENTO SISTEMAS + PARES
-    BIO HUMANO E BIO ANIMAL
+    SISTEMAS + PARES (BIO HUMANO / BIO ANIMAL)
     ------------------------------------------------
     */
 
@@ -223,9 +210,7 @@ export default async function handler(req, res) {
 
         if (!sistema || par == null) continue;
 
-        if (!indice[sistema]) {
-          indice[sistema] = [];
-        }
+        if (!indice[sistema]) indice[sistema] = [];
 
         indice[sistema].push(par);
 
@@ -288,7 +273,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    EXECUÇÃO DINÂMICA NORMAL
+    EXECUÇÃO NORMAL
     ------------------------------------------------
     */
 
@@ -296,17 +281,7 @@ export default async function handler(req, res) {
 
       const categoriaInterna = mapaCategorias[categoriaRecebida];
 
-      if (!categoriaInterna) {
-        console.log("Categoria ignorada:", categoriaRecebida);
-        continue;
-      }
-
-      if (
-        (curso === "bioanimal" || curso === "biohumano") &&
-        (categoriaInterna === "sistemas" || categoriaInterna === "paresSistema")
-      ) {
-        continue;
-      }
+      if (!categoriaInterna) continue;
 
       const resolver = paths[categoriaInterna];
 
