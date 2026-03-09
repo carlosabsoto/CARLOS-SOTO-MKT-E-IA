@@ -2,7 +2,6 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
 export default async function handler(req, res) {
-
   try {
 
     if (req.method !== "POST") {
@@ -21,28 +20,31 @@ export default async function handler(req, res) {
       });
     }
 
+    const executablePath = await chromium.executablePath();
+
     const browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      defaultViewport: chromium.defaultViewport,
+      executablePath,
       headless: chromium.headless
     });
 
     const page = await browser.newPage();
 
     const html = `
-      <html>
+    <html>
       <head>
         <meta charset="UTF-8">
         <style>
-          body {
+          body{
             font-family: Arial, sans-serif;
-            padding: 40px;
-            line-height: 1.6;
+            padding:40px;
+            line-height:1.6;
           }
-          h1 {
-            text-align: center;
+          h1{
+            text-align:center;
           }
-          pre {
+          pre{
             white-space: pre-wrap;
             font-family: inherit;
           }
@@ -55,7 +57,7 @@ export default async function handler(req, res) {
       <pre>${conteudo}</pre>
 
       </body>
-      </html>
+    </html>
     `;
 
     await page.setContent(html, { waitUntil: "networkidle0" });
@@ -70,20 +72,19 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="devolutiva.pdf"`
+      'attachment; filename="devolutiva.pdf"'
     );
 
-    return res.status(200).send(pdf);
+    return res.send(pdf);
 
-  } catch (erro) {
+  } catch (error) {
 
-    console.error("ERRO GERAR PDF:", erro);
+    console.error("ERRO REAL PDF:", error);
 
     return res.status(500).json({
-      success: false,
-      erro: "Falha ao gerar PDF"
+      error: "Erro ao gerar PDF",
+      detalhe: error.message
     });
 
   }
-
 }
