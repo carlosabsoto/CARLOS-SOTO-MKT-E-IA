@@ -2,12 +2,12 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
 export default async function handler(req, res) {
+
   try {
 
     if (req.method !== "POST") {
       return res.status(405).json({
-        success: false,
-        erro: "Método não permitido"
+        error: "Método não permitido"
       });
     }
 
@@ -15,17 +15,21 @@ export default async function handler(req, res) {
 
     if (!conteudo) {
       return res.status(400).json({
-        success: false,
-        erro: "Conteúdo não informado"
+        error: "Conteúdo não informado"
       });
     }
 
-    const executablePath = await chromium.executablePath();
+    // configuração serverless
+    chromium.setGraphicsMode = false;
 
     const browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [
+        ...chromium.args,
+        "--no-sandbox",
+        "--disable-setuid-sandbox"
+      ],
       defaultViewport: chromium.defaultViewport,
-      executablePath,
+      executablePath: await chromium.executablePath(),
       headless: chromium.headless
     });
 
@@ -33,30 +37,33 @@ export default async function handler(req, res) {
 
     const html = `
     <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body{
-            font-family: Arial, sans-serif;
-            padding:40px;
-            line-height:1.6;
-          }
-          h1{
-            text-align:center;
-          }
-          pre{
-            white-space: pre-wrap;
-            font-family: inherit;
-          }
-        </style>
-      </head>
-      <body>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body{
+          font-family: Arial;
+          padding:40px;
+          line-height:1.6;
+        }
+
+        h1{
+          text-align:center;
+        }
+
+        pre{
+          white-space: pre-wrap;
+          font-family: inherit;
+        }
+      </style>
+    </head>
+
+    <body>
 
       <h1>${titulo || "Devolutiva"}</h1>
 
       <pre>${conteudo}</pre>
 
-      </body>
+    </body>
     </html>
     `;
 
@@ -87,4 +94,5 @@ export default async function handler(req, res) {
     });
 
   }
+
 }
