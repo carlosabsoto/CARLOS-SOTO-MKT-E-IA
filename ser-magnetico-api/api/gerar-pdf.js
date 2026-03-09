@@ -1,13 +1,12 @@
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
+import PDFDocument from "pdfkit";
 
 export default async function handler(req, res) {
-
   try {
 
     if (req.method !== "POST") {
       return res.status(405).json({
-        error: "Método não permitido"
+        success: false,
+        erro: "Método não permitido"
       });
     }
 
@@ -15,84 +14,59 @@ export default async function handler(req, res) {
 
     if (!conteudo) {
       return res.status(400).json({
-        error: "Conteúdo não informado"
+        success: false,
+        erro: "Conteúdo não informado"
       });
     }
 
-    // configuração serverless
-    chromium.setGraphicsMode = false;
-
-    const browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        "--no-sandbox",
-        "--disable-setuid-sandbox"
-      ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless
+    const doc = new PDFDocument({
+      margin: 40,
+      size: "A4"
     });
 
-    const page = await browser.newPage();
+    const buffers = [];
 
-    const html = `
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body{
-          font-family: Arial;
-          padding:40px;
-          line-height:1.6;
-        }
+    doc.on("data", buffers.push.bind(buffers));
 
-        h1{
-          text-align:center;
-        }
+    doc.on("end", () => {
+      const pdfData = Buffer.concat(buffers);
 
-        pre{
-          white-space: pre-wrap;
-          font-family: inherit;
-        }
-      </style>
-    </head>
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="devolutiva.pdf"'
+      );
 
-    <body>
-
-      <h1>${titulo || "Devolutiva"}</h1>
-
-      <pre>${conteudo}</pre>
-
-    </body>
-    </html>
-    `;
-
-    await page.setContent(html, { waitUntil: "networkidle0" });
-
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true
+      res.send(pdfData);
     });
 
-    await browser.close();
+    // Título
+    doc
+      .fontSize(20)
+      .text(titulo || "Devolutiva", {
+        align: "center"
+      });
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="devolutiva.pdf"'
-    );
+    doc.moveDown(2);
 
-    return res.send(pdf);
+    // Conteúdo principal
+    doc
+      .fontSize(12)
+      .text(conteudo, {
+        align: "left"
+      });
 
-  } catch (error) {
+    doc.end();
 
-    console.error("ERRO REAL PDF:", error);
+  } catch (erro) {
+
+    console.error("ERRO GERAR PDF:", erro);
 
     return res.status(500).json({
-      error: "Erro ao gerar PDF",
-      detalhe: error.message
+      success: false,
+      erro: "Erro ao gerar PDF",
+      detalhe: erro.message
     });
 
   }
-
 }
