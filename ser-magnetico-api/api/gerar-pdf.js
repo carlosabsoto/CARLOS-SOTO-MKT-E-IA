@@ -1,5 +1,4 @@
 import PDFDocument from "pdfkit";
-import fs from "fs";
 
 export default async function handler(req, res) {
   try {
@@ -20,45 +19,77 @@ export default async function handler(req, res) {
       });
     }
 
-    const fileName = `devolutiva-${Date.now()}.pdf`;
-    const filePath = `/tmp/${fileName}`;
-
     const doc = new PDFDocument({
-      margin: 40,
+      margin: 50,
       size: "A4"
     });
 
-    const stream = fs.createWriteStream(filePath);
+    const buffers = [];
 
-    doc.pipe(stream);
+    doc.on("data", buffers.push.bind(buffers));
+
+    doc.on("end", () => {
+
+      const pdfBuffer = Buffer.concat(buffers);
+      const base64 = pdfBuffer.toString("base64");
+
+      res.status(200).json({
+        success: true,
+        filename: "relatorio-ser-magnetico.pdf",
+        file: base64
+      });
+
+    });
+
+    const dataSessao = new Date().toLocaleDateString("pt-BR");
+
+    // CAPA
+    doc
+      .fontSize(28)
+      .text("SER MAGNÉTICO", { align: "center" });
+
+    doc.moveDown();
 
     doc
       .fontSize(20)
-      .text(titulo || "Devolutiva", {
-        align: "center"
-      });
+      .text(titulo || "Relatório da Sessão", { align: "center" });
 
     doc.moveDown(2);
 
     doc
       .fontSize(12)
-      .text(conteudo, {
+      .text(`Data da sessão: ${dataSessao}`, { align: "center" });
+
+    doc.addPage();
+
+    // SEÇÃO RESULTADO TÉCNICO
+    doc
+      .fontSize(18)
+      .text("RESULTADO DA SESSÃO", { underline: true });
+
+    doc.moveDown();
+
+    const texto = Array.isArray(conteudo)
+      ? conteudo.join("\n\n")
+      : conteudo;
+
+    doc
+      .fontSize(12)
+      .text(texto, {
         align: "left",
         width: 500
       });
 
-    doc.end();
+    doc.moveDown(2);
 
-    stream.on("finish", () => {
-
-      const url = `https://ias-ser-magnetico.vercel.app/api/download?file=${fileName}`;
-
-      return res.status(200).json({
-        success: true,
-        url: url
+    // RODAPÉ
+    doc
+      .fontSize(10)
+      .text("Ser Magnético", 50, doc.page.height - 50, {
+        align: "center"
       });
 
-    });
+    doc.end();
 
   } catch (erro) {
 
