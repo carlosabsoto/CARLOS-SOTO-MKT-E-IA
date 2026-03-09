@@ -1,7 +1,10 @@
 import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
 
 export default async function handler(req, res) {
   try {
+
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
@@ -18,82 +21,42 @@ export default async function handler(req, res) {
       });
     }
 
+    const texto = Array.isArray(conteudo)
+      ? conteudo.join("\n\n")
+      : String(conteudo);
+
+    const fileName = `devolutiva-${Date.now()}.pdf`;
+
+    const pdfPath = path.join(process.cwd(), "public", "pdfs", fileName);
+
     const doc = new PDFDocument({
       margin: 50,
       size: "A4"
     });
 
-    const buffers = [];
+    const stream = fs.createWriteStream(pdfPath);
 
-    doc.on("data", (chunk) => buffers.push(chunk));
-
-    doc.on("end", () => {
-      try {
-        const pdfBuffer = Buffer.concat(buffers);
-        const base64 = pdfBuffer.toString("base64");
-
-        return res.status(200).json({
-          success: true,
-          filename: "relatorio-ser-magnetico.pdf",
-          url: `data:application/pdf;base64,${base64}`
-        });
-      } catch (erro) {
-        console.error("ERRO FINALIZAR PDF:", erro);
-
-        return res.status(500).json({
-          success: false,
-          erro: "Falha ao finalizar PDF",
-          detalhe: erro.message
-        });
-      }
-    });
+    doc.pipe(stream);
 
     const dataSessao = new Date().toLocaleDateString("pt-BR");
 
-    const texto = Array.isArray(conteudo)
-      ? conteudo.join("\n\n")
-      : String(conteudo);
-
     // CAPA
-    doc
-      .fontSize(28)
-      .text("SER MAGNÉTICO", {
-        align: "center"
-      });
-
+    doc.fontSize(28).text("SER MAGNÉTICO", { align: "center" });
     doc.moveDown();
-
-    doc
-      .fontSize(20)
-      .text(titulo || "Relatório da Sessão", {
-        align: "center"
-      });
-
+    doc.fontSize(20).text(titulo || "Relatório da Sessão", { align: "center" });
     doc.moveDown(2);
-
-    doc
-      .fontSize(12)
-      .text(`Data da sessão: ${dataSessao}`, {
-        align: "center"
-      });
+    doc.fontSize(12).text(`Data da sessão: ${dataSessao}`, { align: "center" });
 
     doc.addPage();
 
     // CONTEÚDO
-    doc
-      .fontSize(18)
-      .text("RESULTADO DA SESSÃO", {
-        underline: true
-      });
-
+    doc.fontSize(18).text("RESULTADO DA SESSÃO", { underline: true });
     doc.moveDown();
 
-    doc
-      .fontSize(12)
-      .text(texto, {
-        align: "left",
-        width: 500
-      });
+    doc.fontSize(12).text(texto, {
+      align: "left",
+      width: 500
+    });
 
     // RODAPÉ
     doc.fontSize(10).text(
@@ -104,13 +67,27 @@ export default async function handler(req, res) {
     );
 
     doc.end();
+
+    stream.on("finish", () => {
+
+      const url = `https://ias-ser-magnetico.vercel.app/pdfs/${fileName}`;
+
+      return res.status(200).json({
+        success: true,
+        filename: fileName,
+        url: url
+      });
+
+    });
+
   } catch (erro) {
+
     console.error("ERRO GERAR PDF:", erro);
 
     return res.status(500).json({
       success: false,
-      erro: "Erro ao gerar PDF",
-      detalhe: erro.message
+      erro: erro.message
     });
+
   }
 }
