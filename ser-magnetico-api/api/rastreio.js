@@ -11,6 +11,43 @@ import { aggregateBioAnimal } from "../services/aggregatorBioAnimal.js";
 import { fetchFromGitHub } from "../services/githubService.js";
 
 
+/*
+------------------------------------------------
+PARSER DAM (NOVO)
+------------------------------------------------
+*/
+
+function parseRastreioDAM(texto = "") {
+
+  const lower = texto.toLowerCase();
+
+  function extrairNumeros(regex) {
+
+    const match = lower.match(regex);
+
+    if (!match) return [];
+
+    return (match[1].match(/\d+/g) || []).map(n => Number(n));
+
+  }
+
+  return {
+
+    cartas: extrairNumeros(/carta[^0-9]*([\d,\se]+)/),
+
+    areasSistemicas: extrairNumeros(/area[s]?\s*sistemica[s]?[^0-9]*([\d,\se]+)/),
+
+    areasDeAtuacao: extrairNumeros(/area[s]?\s*de\s*atuacao[^0-9]*([\d,\se]+)/),
+
+    desativacoes: extrairNumeros(/desativac[aã]o(?:es)?[^0-9]*([\d,\se]+)/),
+
+    ativacoes: extrairNumeros(/ativac[aã]o(?:es)?[^0-9]*([\d,\se]+)/)
+
+  };
+
+}
+
+
 export default async function handler(req, res) {
 
   try {
@@ -23,7 +60,22 @@ export default async function handler(req, res) {
     }
 
     const cursoRaw = req.body.curso || "dam";
-    const dados = req.body.dados || req.body || {};
+
+    /*
+    ------------------------------------------------
+    SUPORTE A TEXTO LIVRE (NOVO)
+    ------------------------------------------------
+    */
+
+    let dados = req.body.dados || req.body || {};
+
+    if (cursoRaw === "dam" && req.body.texto) {
+
+      console.log("🔎 PARSING TEXTO DAM");
+
+      dados = parseRastreioDAM(req.body.texto);
+
+    }
 
     const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
 
