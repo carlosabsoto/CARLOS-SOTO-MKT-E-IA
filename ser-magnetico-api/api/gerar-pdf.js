@@ -2,7 +2,6 @@ import PDFDocument from "pdfkit";
 
 export default async function handler(req, res) {
   try {
-
     if (req.method !== "POST") {
       return res.status(405).json({
         success: false,
@@ -10,7 +9,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const { titulo, conteudo } = req.body;
+    const { titulo, conteudo } = req.body || {};
 
     if (!conteudo) {
       return res.status(400).json({
@@ -26,52 +25,68 @@ export default async function handler(req, res) {
 
     const buffers = [];
 
-    doc.on("data", buffers.push.bind(buffers));
+    doc.on("data", (chunk) => buffers.push(chunk));
 
     doc.on("end", () => {
+      try {
+        const pdfBuffer = Buffer.concat(buffers);
+        const base64 = pdfBuffer.toString("base64");
 
-      const pdfBuffer = Buffer.concat(buffers);
-      const base64 = pdfBuffer.toString("base64");
+        return res.status(200).json({
+          success: true,
+          filename: "relatorio-ser-magnetico.pdf",
+          url: `data:application/pdf;base64,${base64}`
+        });
+      } catch (erro) {
+        console.error("ERRO FINALIZAR PDF:", erro);
 
-      res.status(200).json({
-        success: true,
-        filename: "relatorio-ser-magnetico.pdf",
-        file: base64
-      });
-
+        return res.status(500).json({
+          success: false,
+          erro: "Falha ao finalizar PDF",
+          detalhe: erro.message
+        });
+      }
     });
 
     const dataSessao = new Date().toLocaleDateString("pt-BR");
 
+    const texto = Array.isArray(conteudo)
+      ? conteudo.join("\n\n")
+      : String(conteudo);
+
     // CAPA
     doc
       .fontSize(28)
-      .text("SER MAGNÉTICO", { align: "center" });
+      .text("SER MAGNÉTICO", {
+        align: "center"
+      });
 
     doc.moveDown();
 
     doc
       .fontSize(20)
-      .text(titulo || "Relatório da Sessão", { align: "center" });
+      .text(titulo || "Relatório da Sessão", {
+        align: "center"
+      });
 
     doc.moveDown(2);
 
     doc
       .fontSize(12)
-      .text(`Data da sessão: ${dataSessao}`, { align: "center" });
+      .text(`Data da sessão: ${dataSessao}`, {
+        align: "center"
+      });
 
     doc.addPage();
 
-    // SEÇÃO RESULTADO TÉCNICO
+    // CONTEÚDO
     doc
       .fontSize(18)
-      .text("RESULTADO DA SESSÃO", { underline: true });
+      .text("RESULTADO DA SESSÃO", {
+        underline: true
+      });
 
     doc.moveDown();
-
-    const texto = Array.isArray(conteudo)
-      ? conteudo.join("\n\n")
-      : conteudo;
 
     doc
       .fontSize(12)
@@ -80,25 +95,22 @@ export default async function handler(req, res) {
         width: 500
       });
 
-    doc.moveDown(2);
-
     // RODAPÉ
-    doc
-      .fontSize(10)
-      .text("Ser Magnético", 50, doc.page.height - 50, {
-        align: "center"
-      });
+    doc.fontSize(10).text(
+      "Ser Magnético",
+      50,
+      doc.page.height - 50,
+      { align: "center" }
+    );
 
     doc.end();
-
   } catch (erro) {
-
     console.error("ERRO GERAR PDF:", erro);
 
     return res.status(500).json({
       success: false,
-      erro: erro.message
+      erro: "Erro ao gerar PDF",
+      detalhe: erro.message
     });
-
   }
 }
