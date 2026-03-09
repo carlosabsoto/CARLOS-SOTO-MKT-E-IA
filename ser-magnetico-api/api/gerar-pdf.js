@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import fs from "fs";
 
 export default async function handler(req, res) {
   try {
@@ -19,28 +20,18 @@ export default async function handler(req, res) {
       });
     }
 
+    const fileName = `devolutiva-${Date.now()}.pdf`;
+    const filePath = `/tmp/${fileName}`;
+
     const doc = new PDFDocument({
       margin: 40,
       size: "A4"
     });
 
-    const buffers = [];
+    const stream = fs.createWriteStream(filePath);
 
-    doc.on("data", buffers.push.bind(buffers));
+    doc.pipe(stream);
 
-    doc.on("end", () => {
-      const pdfData = Buffer.concat(buffers);
-
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        'attachment; filename="devolutiva.pdf"'
-      );
-
-      res.send(pdfData);
-    });
-
-    // Título
     doc
       .fontSize(20)
       .text(titulo || "Devolutiva", {
@@ -49,14 +40,25 @@ export default async function handler(req, res) {
 
     doc.moveDown(2);
 
-    // Conteúdo principal
     doc
       .fontSize(12)
       .text(conteudo, {
-        align: "left"
+        align: "left",
+        width: 500
       });
 
     doc.end();
+
+    stream.on("finish", () => {
+
+      const url = `https://ias-ser-magnetico.vercel.app/api/download?file=${fileName}`;
+
+      return res.status(200).json({
+        success: true,
+        url: url
+      });
+
+    });
 
   } catch (erro) {
 
@@ -64,8 +66,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       success: false,
-      erro: "Erro ao gerar PDF",
-      detalhe: erro.message
+      erro: erro.message
     });
 
   }
