@@ -33,7 +33,7 @@ function parseLista(valor) {
 
 /*
 ------------------------------------------------
-PARSER TEXTO DAM (ROBUSTO)
+PARSER TEXTO DAM
 ------------------------------------------------
 */
 
@@ -44,7 +44,7 @@ function parseRastreioDAM(texto = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
-  function extrairTodosNumeros(regex) {
+  function extrair(regex) {
 
     const encontrados = [];
     let match;
@@ -56,17 +56,7 @@ function parseRastreioDAM(texto = "") {
         const nums = match[1].match(/\d+/g);
 
         if (nums) {
-
-          nums.forEach(n => {
-
-            const num = Number(n);
-
-            if (!isNaN(num)) {
-              encontrados.push(num);
-            }
-
-          });
-
+          nums.forEach(n => encontrados.push(Number(n)));
         }
 
       }
@@ -79,23 +69,21 @@ function parseRastreioDAM(texto = "") {
 
   return {
 
-    cartas: extrairTodosNumeros(
-      /(?:carta|campo)[^0-9]*([\d,\se]+)/g
-    ),
+    cartas: extrair(/(?:carta|campo)[^0-9]*([\d,\se]+)/g),
 
-    areasSistemicas: extrairTodosNumeros(
+    areasSistemicas: extrair(
       /(?:area[s]?\s*sistemica[s]?|sistemica[s]?)[^0-9]*([\d,\se]+)/g
     ),
 
-    areasDeAtuacao: extrairTodosNumeros(
+    areasDeAtuacao: extrair(
       /(?:area[s]?\s*de\s*atuacao|atuacao)[^0-9]*([\d,\se]+)/g
     ),
 
-    desativacoes: extrairTodosNumeros(
+    desativacoes: extrair(
       /(?:desativac(?:ao|oes)|emoc(?:ao|oes)?\s*desativad(?:a|as)?)[^0-9]*([\d,\se]+)/g
     ),
 
-    ativacoes: extrairTodosNumeros(
+    ativacoes: extrair(
       /(?:ativac(?:ao|oes)|emoc(?:ao|oes)?\s*ativad(?:a|as)?)[^0-9]*([\d,\se]+)/g
     )
 
@@ -114,13 +102,13 @@ export default async function handler(req, res) {
 
   try {
 
+    let body = {};
+
     /*
     ------------------------------------------------
     SUPORTE GET + POST
     ------------------------------------------------
     */
-
-    let body = {};
 
     if (req.method === "GET") {
 
@@ -158,6 +146,7 @@ export default async function handler(req, res) {
 
 
     const cursoRaw = body.curso || "dam";
+    let dados = body.dados || body || {};
 
 
     /*
@@ -165,8 +154,6 @@ export default async function handler(req, res) {
     TEXTO LIVRE DAM
     ------------------------------------------------
     */
-
-    let dados = body.dados || body || {};
 
     if (cursoRaw === "dam" && body.texto) {
 
@@ -188,6 +175,12 @@ export default async function handler(req, res) {
     let resultado = {};
     let mapaCategorias = {};
 
+
+    /*
+    ------------------------------------------------
+    CONFIGURAÇÃO POR CURSO
+    ------------------------------------------------
+    */
 
     switch (curso) {
 
@@ -253,8 +246,8 @@ export default async function handler(req, res) {
           paresEmocionais: {},
           reservatorios: {},
           rastreioGeral: {},
-          sistemas: {},
-          protocolos: {}
+          protocolos: {},
+          sistemas: {}
         };
 
         mapaCategorias = {
@@ -300,7 +293,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    CARREGAR CONTEÚDO (FETCH PARALELO)
+    FUNÇÃO DE FETCH PARALELO
     ------------------------------------------------
     */
 
@@ -316,7 +309,6 @@ export default async function handler(req, res) {
         try {
 
           const conteudo = await fetchFromGitHub(path);
-          if (!conteudo) return;
 
           if (!resultado[categoria]) resultado[categoria] = {};
 
@@ -324,7 +316,7 @@ export default async function handler(req, res) {
 
         } catch (err) {
 
-          console.log("Erro ao buscar:", path, err.message);
+          console.log("Erro ao buscar:", path);
 
         }
 
@@ -337,11 +329,11 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    EXECUÇÃO NORMAL
+    EXECUÇÃO CATEGORIAS NORMAIS
     ------------------------------------------------
     */
 
-    const tarefasCategorias = [];
+    const tarefas = [];
 
     for (const categoriaRecebida in dados) {
 
@@ -352,7 +344,7 @@ export default async function handler(req, res) {
 
       if (typeof resolver === "function") {
 
-        tarefasCategorias.push(
+        tarefas.push(
           carregar(
             categoriaInterna,
             dados[categoriaRecebida],
@@ -364,12 +356,90 @@ export default async function handler(req, res) {
 
     }
 
-    await Promise.all(tarefasCategorias);
+    await Promise.all(tarefas);
 
 
     /*
     ------------------------------------------------
-    MANTRAS (PARALELO)
+    SISTEMAS
+    ------------------------------------------------
+    */
+
+    if ((curso === "biohumano" || curso === "bioanimal") && dados.sistemas) {
+
+      const tarefasSistema = dados.sistemas.map(async (s) => {
+
+        try {
+
+          const pathSistema = paths.sistemas(s);
+
+          console.log("🔎 BUSCANDO:", pathSistema);
+
+          const textoSistema = await fetchFromGitHub(pathSistema);
+
+          resultado.sistemas[s] = {
+            texto: textoSistema,
+            pares: {}
+          };
+
+        } catch {
+
+          console.log("Erro sistema:", s);
+
+        }
+
+      });
+
+      await Promise.all(tarefasSistema);
+
+    }
+
+
+    /*
+    ------------------------------------------------
+    PARES DOS SISTEMAS
+    ------------------------------------------------
+    */
+
+    if ((curso === "biohumano" || curso === "bioanimal") && dados.paresSistema) {
+
+      const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
+
+        try {
+
+          const pathPar = paths.paresSistema(sistema, par);
+
+          console.log("🔎 BUSCANDO:", pathPar);
+
+          const textoPar = await fetchFromGitHub(pathPar);
+
+          if (!resultado.sistemas[sistema]) {
+
+            resultado.sistemas[sistema] = {
+              texto: "",
+              pares: {}
+            };
+
+          }
+
+          resultado.sistemas[sistema].pares[par] = textoPar;
+
+        } catch {
+
+          console.log("Erro par:", sistema, par);
+
+        }
+
+      });
+
+      await Promise.all(tarefasPares);
+
+    }
+
+
+    /*
+    ------------------------------------------------
+    MANTRAS
     ------------------------------------------------
     */
 
@@ -409,8 +479,9 @@ export default async function handler(req, res) {
       resultado: resultadoBlocos
     });
 
+  }
 
-  } catch (erro) {
+  catch (erro) {
 
     console.error("Erro rastreio:", erro);
 
