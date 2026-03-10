@@ -38,7 +38,13 @@ PARSER TEXTO DAM
 */
 
 function parseRastreioDAM(texto = "") {
-  
+
+  const lower = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " "); // Remove espaços extras
+
   const resultado = {
     cartas: [],
     areasSistemicas: [],
@@ -47,42 +53,59 @@ function parseRastreioDAM(texto = "") {
     ativacoes: []
   };
 
-  // Parse do formato: "cartas:3 areasSistemicas:2 areasDeAtuacao:11 desativacoes:2,23,32 ativacoes:5,27"
-  
-  const lower = texto.toLowerCase();
-
-  // Extrai cartas
-  const cartasMatch = lower.match(/cartas?:(\d+(?:,\d+)*)/);
-  if (cartasMatch) {
-    resultado.cartas = cartasMatch[1].split(',').map(n => parseInt(n.trim()));
+  // Função auxiliar para extrair números de qualquer parte do texto
+  function extrairNumeros(regex) {
+    const match = lower.match(regex);
+    if (!match || !match[1]) return [];
+    
+    return match[1]
+      .match(/\d+/g)
+      ?.map(n => parseInt(n.trim()))
+      .filter(n => !isNaN(n)) || [];
   }
 
-  // Extrai áreas sistêmicas
-  const sistemicasMatch = lower.match(/areassistemicas?:(\d+(?:,\d+)*)/);
-  if (sistemicasMatch) {
-    resultado.areasSistemicas = sistemicasMatch[1].split(',').map(n => parseInt(n.trim()));
-  }
+  // Tenta vários padrões para cada campo
 
-  // Extrai áreas de atuação
-  const atuacaoMatch = lower.match(/areasdeatuacao:(\d+(?:,\d+)*)/);
-  if (atuacaoMatch) {
-    resultado.areasDeAtuacao = atuacaoMatch[1].split(',').map(n => parseInt(n.trim()));
-  }
+  // CARTAS
+  resultado.cartas = 
+    extrairNumeros(/cartas?[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/carta[s]?\s+da\s+consciencia[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/campo[:\s]+([0-9,\s]+)/i) ||
+    [];
 
-  // Extrai desativações
-  const desativacoesMatch = lower.match(/desativaco?es?:(\d+(?:,\d+)*)/);
-  if (desativacoesMatch) {
-    resultado.desativacoes = desativacoesMatch[1].split(',').map(n => parseInt(n.trim()));
-  }
+  // ÁREAS SISTÊMICAS  
+  resultado.areasSistemicas = 
+    extrairNumeros(/areassistemicas?[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/area[s]?\s+sistemica[s]?[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/sistemica[s]?[:\s]+([0-9,\s]+)/i) ||
+    [];
 
-  // Extrai ativações
-  const ativacoesMatch = lower.match(/ativaco?es?:(\d+(?:,\d+)*)/);
-  if (ativacoesMatch) {
-    resultado.ativacoes = ativacoesMatch[1].split(',').map(n => parseInt(n.trim()));
-  }
+  // ÁREAS DE ATUAÇÃO
+  resultado.areasDeAtuacao = 
+    extrairNumeros(/areasdeatuacao[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/area[s]?\s+de\s+atuacao[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/atuacao[:\s]+([0-9,\s]+)/i) ||
+    [];
+
+  // DESATIVAÇÕES
+  resultado.desativacoes = 
+    extrairNumeros(/desativaco?es?[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/emoco?es?\s+(?:de\s+)?desativaca?o[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/desativar[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/emoco?es?\s+para\s+desativar[:\s]+([0-9,\s]+)/i) ||
+    [];
+
+  // ATIVAÇÕES
+  resultado.ativacoes = 
+    extrairNumeros(/ativaco?es?[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/emoco?es?\s+(?:de\s+)?ativaca?o[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/ativar[:\s]+([0-9,\s]+)/i) ||
+    extrairNumeros(/emoco?es?\s+para\s+ativar[:\s]+([0-9,\s]+)/i) ||
+    [];
 
   return resultado;
 }
+
 
 /*
 ------------------------------------------------
