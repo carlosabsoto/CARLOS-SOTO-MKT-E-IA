@@ -1,3 +1,23 @@
+function dividirBlocos(texto, tamanhoMax = 5000) {
+
+  if (!texto) return [];
+
+  const partes = [];
+
+  let inicio = 0;
+
+  while (inicio < texto.length) {
+
+    partes.push(texto.slice(inicio, inicio + tamanhoMax));
+
+    inicio += tamanhoMax;
+
+  }
+
+  return partes;
+
+}
+
 const LIMITE_BLOCO = 12000;
 
 function dividirTextoSeguro(texto = "") {
