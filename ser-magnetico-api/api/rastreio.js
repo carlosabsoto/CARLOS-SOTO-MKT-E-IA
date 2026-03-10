@@ -13,7 +13,27 @@ import { fetchFromGitHub } from "../services/githubService.js";
 
 /*
 ------------------------------------------------
-PARSER DAM (NOVO)
+UTILS
+------------------------------------------------
+*/
+
+function parseLista(valor) {
+
+  if (!valor) return [];
+
+  if (Array.isArray(valor)) return valor.map(Number);
+
+  return String(valor)
+    .split(",")
+    .map(v => Number(v.trim()))
+    .filter(v => !isNaN(v));
+
+}
+
+
+/*
+------------------------------------------------
+PARSER TEXTO DAM
 ------------------------------------------------
 */
 
@@ -48,34 +68,74 @@ function parseRastreioDAM(texto = "") {
 }
 
 
+/*
+------------------------------------------------
+HANDLER
+------------------------------------------------
+*/
+
 export default async function handler(req, res) {
 
   try {
 
-    if (req.method !== "POST") {
+    /*
+    ------------------------------------------------
+    SUPORTE GET + POST
+    ------------------------------------------------
+    */
+
+    let body = {};
+
+    if (req.method === "GET") {
+
+      body = {
+        curso: req.query.curso,
+        dados: {
+          cartas: parseLista(req.query.cartas),
+          areasSistemicas: parseLista(req.query.areasSistemicas),
+          areasDeAtuacao: parseLista(req.query.areasDeAtuacao),
+          desativacoes: parseLista(req.query.desativacoes),
+          ativacoes: parseLista(req.query.ativacoes)
+        }
+      };
+
+    }
+
+    else if (req.method === "POST") {
+
+      body = req.body || {};
+
+    }
+
+    else {
+
       return res.status(405).json({
         success: false,
         erro: "Método não permitido"
       });
+
     }
 
-    const cursoRaw = req.body.curso || "dam";
+
+    const cursoRaw = body.curso || "dam";
+
 
     /*
     ------------------------------------------------
-    SUPORTE A TEXTO LIVRE (NOVO)
+    TEXTO LIVRE DAM
     ------------------------------------------------
     */
 
-    let dados = req.body.dados || req.body || {};
+    let dados = body.dados || body || {};
 
-    if (cursoRaw === "dam" && req.body.texto) {
+    if (cursoRaw === "dam" && body.texto) {
 
       console.log("🔎 PARSING TEXTO DAM");
 
-      dados = parseRastreioDAM(req.body.texto);
+      dados = parseRastreioDAM(body.texto);
 
     }
+
 
     const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
 
@@ -83,10 +143,12 @@ export default async function handler(req, res) {
     console.log("CURSO NORMALIZADO:", curso);
     console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
 
+
     let paths;
     let aggregator;
     let resultado = {};
     let mapaCategorias = {};
+
 
     switch (curso) {
 
@@ -112,7 +174,6 @@ export default async function handler(req, res) {
         };
 
       break;
-
 
 
       case "espiritos":
@@ -144,7 +205,6 @@ export default async function handler(req, res) {
       break;
 
 
-
       case "biohumano":
 
         paths = bioHumanoPaths;
@@ -168,7 +228,6 @@ export default async function handler(req, res) {
       break;
 
 
-
       case "bioanimal":
 
         paths = bioAnimalPaths;
@@ -190,7 +249,6 @@ export default async function handler(req, res) {
       break;
 
 
-
       default:
 
         return res.status(400).json({
@@ -201,42 +259,9 @@ export default async function handler(req, res) {
     }
 
 
-
     /*
     ------------------------------------------------
-    INFERIR SISTEMAS A PARTIR DOS PARES
-    ------------------------------------------------
-    */
-
-    if (curso === "biohumano" || curso === "bioanimal") {
-
-      if (!Array.isArray(dados.sistemas)) {
-        dados.sistemas = [];
-      }
-
-      if (Array.isArray(dados.paresSistema)) {
-
-        for (const item of dados.paresSistema) {
-
-          const s = Number(item?.sistema);
-
-          if (!isNaN(s) && !dados.sistemas.includes(s)) {
-            dados.sistemas.push(s);
-          }
-
-        }
-
-      }
-
-      dados.sistemas = [...new Set(dados.sistemas)].sort((a,b)=>a-b);
-
-    }
-
-
-
-    /*
-    ------------------------------------------------
-    FUNÇÃO PADRÃO DE CARREGAMENTO
+    CARREGAR CONTEÚDO
     ------------------------------------------------
     */
 
@@ -271,88 +296,6 @@ export default async function handler(req, res) {
     }
 
 
-
-    /*
-    ------------------------------------------------
-    SISTEMAS + PARES
-    ------------------------------------------------
-    */
-
-    if (curso === "biohumano" || curso === "bioanimal") {
-
-      const sistemas = dados.sistemas || [];
-      const paresSistema = dados.paresSistema || [];
-
-      const indice = {};
-
-      for (const item of paresSistema) {
-
-        const sistema = String(item?.sistema);
-        const par = item?.par;
-
-        if (!sistema || par == null) continue;
-
-        if (!indice[sistema]) indice[sistema] = [];
-
-        indice[sistema].push(par);
-
-      }
-
-
-      for (const sistema of sistemas) {
-
-        try {
-
-          const textoSistema = await fetchFromGitHub(
-            paths.sistemas(sistema)
-          );
-
-          resultado.sistemas[String(sistema)] = {
-            texto: textoSistema,
-            pares: {}
-          };
-
-          console.log("✔ SISTEMA:", sistema);
-
-        } catch (err) {
-
-          console.log("Erro sistema:", sistema, err.message);
-
-        }
-
-      }
-
-
-      for (const sistema of Object.keys(indice)) {
-
-        if (!resultado.sistemas[sistema]) continue;
-
-        for (const par of indice[sistema]) {
-
-          try {
-
-            const textoPar = await fetchFromGitHub(
-              paths.paresSistema(sistema, par)
-            );
-
-            resultado.sistemas[sistema].pares[par] = textoPar;
-
-            console.log("✔ PAR:", sistema, par);
-
-          } catch (err) {
-
-            console.log("Erro par:", sistema, par, err.message);
-
-          }
-
-        }
-
-      }
-
-    }
-
-
-
     /*
     ------------------------------------------------
     EXECUÇÃO NORMAL
@@ -379,7 +322,6 @@ export default async function handler(req, res) {
     }
 
 
-
     /*
     ------------------------------------------------
     MANTRAS
@@ -393,7 +335,6 @@ export default async function handler(req, res) {
     const mantraDesativacao = paths.mantraDesativacao
       ? await fetchFromGitHub(paths.mantraDesativacao)
       : "";
-
 
 
     /*
@@ -413,27 +354,11 @@ export default async function handler(req, res) {
       : [blocos];
 
 
-
-    console.log("TOTAL BLOCOS:", resultadoBlocos.length);
-
-    resultadoBlocos.forEach((b, i) => {
-      console.log(`BLOCO ${i} TAMANHO:`, b.length);
-    });
-
-
-
-    const jsonResposta = {
+    return res.status(200).json({
       success: true,
       curso: cursoRaw,
       resultado: resultadoBlocos
-    };
-
-    console.log("TAMANHO JSON:", JSON.stringify(jsonResposta).length);
-
-
-
-    return res.status(200).json(jsonResposta);
-
+    });
 
 
   } catch (erro) {
