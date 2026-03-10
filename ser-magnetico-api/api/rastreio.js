@@ -33,7 +33,7 @@ function parseLista(valor) {
 
 /*
 ------------------------------------------------
-PARSER TEXTO DAM (ACEITA NÚMEROS E POR EXTENSO)
+PARSER TEXTO DAM (VERSÃO CORRIGIDA)
 ------------------------------------------------
 */
 
@@ -47,7 +47,7 @@ function parseRastreioDAM(texto = "") {
 
   // Mapa completo de números por extenso
   const numerosExtenso = {
-    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3, 'três': 3,
+    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3,
     'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9,
     'dez': 10, 'onze': 11, 'doze': 12, 'treze': 13, 'quatorze': 14, 'quinze': 15,
     'dezesseis': 16, 'dezessete': 17, 'dezoito': 18, 'dezenove': 19,
@@ -63,7 +63,7 @@ function parseRastreioDAM(texto = "") {
   // Converte números por extenso para dígitos
   let textoConvertido = lower;
   
-  // Ordena do mais longo para o mais curto (para pegar "vinte e três" antes de "vinte")
+  // Ordena do mais longo para o mais curto
   const chavesOrdenadas = Object.keys(numerosExtenso).sort((a, b) => b.length - a.length);
   
   for (const extenso of chavesOrdenadas) {
@@ -73,18 +73,28 @@ function parseRastreioDAM(texto = "") {
 
   console.log("🔄 TEXTO CONVERTIDO:", textoConvertido);
 
-  // Função para extrair números de um padrão
-  function extrairNumeros(regexPattern) {
-    const match = textoConvertido.match(regexPattern);
-    if (!match) return [];
+  // Função melhorada para extrair seção específica
+  function extrairSecao(inicio, fim) {
+    const regexInicio = new RegExp(inicio, 'i');
+    const regexFim = fim ? new RegExp(fim, 'i') : null;
     
-    // Pega tudo depois do match até encontrar o próximo campo ou fim
-    const textoAposMatch = match[0];
-    const numeros = textoAposMatch.match(/\d+/g);
+    const matchInicio = textoConvertido.match(regexInicio);
+    if (!matchInicio) return [];
     
-    if (!numeros) return [];
+    const posInicio = matchInicio.index + matchInicio[0].length;
+    let posFim = textoConvertido.length;
     
-    return numeros.map(n => parseInt(n)).filter(n => !isNaN(n));
+    if (regexFim) {
+      const matchFim = textoConvertido.slice(posInicio).match(regexFim);
+      if (matchFim) {
+        posFim = posInicio + matchFim.index;
+      }
+    }
+    
+    const secao = textoConvertido.slice(posInicio, posFim);
+    const numeros = secao.match(/\d+/g);
+    
+    return numeros ? numeros.map(n => parseInt(n)).filter(n => !isNaN(n)) : [];
   }
 
   const resultado = {
@@ -95,14 +105,33 @@ function parseRastreioDAM(texto = "") {
     ativacoes: []
   };
 
-  // Extrai cada campo
-  resultado.cartas = extrairNumeros(/(?:carta|campo)[^a-z]*([\d\s,e]+)/i);
-  resultado.areasSistemicas = extrairNumeros(/(?:area[s]?\s+sistemica[s]?|sistemica[s]?)[^a-z]*([\d\s,e]+)/i);
-  resultado.areasDeAtuacao = extrairNumeros(/(?:area[s]?\s+de\s+atuacao|atuacao)[^a-z]*([\d\s,e]+)/i);
-  resultado.desativacoes = extrairNumeros(/(?:desativar|desativac)[^a-z]*([\d\s,e]+)/i);
-  resultado.ativacoes = extrairNumeros(/(?:ativar|ativac)[^a-z]*([\d\s,e]+)/i);
+  // Extrai cada campo com delimitadores claros
+  resultado.cartas = extrairSecao(
+    'carta[s]?\\s+da\\s+consciencia|carta[s]?\\s*:',
+    'area[s]?\\s+sistemica|area[s]?\\s*:'
+  );
 
-  // Pega apenas o primeiro número para campos únicos
+  resultado.areasSistemicas = extrairSecao(
+    'area[s]?\\s+sistemica[s]?|sistemica[s]?\\s*:',
+    'area[s]?\\s+de\\s+atuacao|atuacao\\s*:'
+  );
+
+  resultado.areasDeAtuacao = extrairSecao(
+    'area[s]?\\s+de\\s+atuacao|atuacao\\s*:',
+    'desativar|desativac|emoco?es?\\s+para\\s+desativar'
+  );
+
+  resultado.desativacoes = extrairSecao(
+    'desativar|desativac|emoco?es?\\s+para\\s+desativar',
+    'ativar|ativac|emoco?es?\\s+para\\s+ativar'
+  );
+
+  resultado.ativacoes = extrairSecao(
+    'ativar|ativac|emoco?es?\\s+para\\s+ativar',
+    null // até o fim
+  );
+
+  // Pega apenas o primeiro para campos únicos
   if (resultado.cartas.length > 0) {
     resultado.cartas = [resultado.cartas[0]];
   }
@@ -117,7 +146,6 @@ function parseRastreioDAM(texto = "") {
 
   return resultado;
 }
-
 
 /*
 ------------------------------------------------
