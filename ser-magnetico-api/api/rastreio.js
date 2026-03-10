@@ -38,59 +38,51 @@ PARSER TEXTO DAM
 */
 
 function parseRastreioDAM(texto = "") {
-
-  const lower = texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  function extrair(regex) {
-
-    const encontrados = [];
-    let match;
-
-    while ((match = regex.exec(lower)) !== null) {
-
-      if (match[1]) {
-
-        const nums = match[1].match(/\d+/g);
-
-        if (nums) {
-          nums.forEach(n => encontrados.push(Number(n)));
-        }
-
-      }
-
-    }
-
-    return [...new Set(encontrados)];
-
-  }
-
-  return {
-
-    cartas: extrair(/(?:carta|campo)[^0-9]*([\d,\se]+)/g),
-
-    areasSistemicas: extrair(
-      /(?:area[s]?\s*sistemica[s]?|sistemica[s]?)[^0-9]*([\d,\se]+)/g
-    ),
-
-    areasDeAtuacao: extrair(
-      /(?:area[s]?\s*de\s*atuacao|atuacao)[^0-9]*([\d,\se]+)/g
-    ),
-
-    desativacoes: extrair(
-      /(?:desativac(?:ao|oes)|emoc(?:ao|oes)?\s*desativad(?:a|as)?)[^0-9]*([\d,\se]+)/g
-    ),
-
-    ativacoes: extrair(
-      /(?:ativac(?:ao|oes)|emoc(?:ao|oes)?\s*ativad(?:a|as)?)[^0-9]*([\d,\se]+)/g
-    )
-
+  
+  const resultado = {
+    cartas: [],
+    areasSistemicas: [],
+    areasDeAtuacao: [],
+    desativacoes: [],
+    ativacoes: []
   };
 
-}
+  // Parse do formato: "cartas:3 areasSistemicas:2 areasDeAtuacao:11 desativacoes:2,23,32 ativacoes:5,27"
+  
+  const lower = texto.toLowerCase();
 
+  // Extrai cartas
+  const cartasMatch = lower.match(/cartas?:(\d+(?:,\d+)*)/);
+  if (cartasMatch) {
+    resultado.cartas = cartasMatch[1].split(',').map(n => parseInt(n.trim()));
+  }
+
+  // Extrai áreas sistêmicas
+  const sistemicasMatch = lower.match(/areassistemicas?:(\d+(?:,\d+)*)/);
+  if (sistemicasMatch) {
+    resultado.areasSistemicas = sistemicasMatch[1].split(',').map(n => parseInt(n.trim()));
+  }
+
+  // Extrai áreas de atuação
+  const atuacaoMatch = lower.match(/areasdeatuacao:(\d+(?:,\d+)*)/);
+  if (atuacaoMatch) {
+    resultado.areasDeAtuacao = atuacaoMatch[1].split(',').map(n => parseInt(n.trim()));
+  }
+
+  // Extrai desativações
+  const desativacoesMatch = lower.match(/desativaco?es?:(\d+(?:,\d+)*)/);
+  if (desativacoesMatch) {
+    resultado.desativacoes = desativacoesMatch[1].split(',').map(n => parseInt(n.trim()));
+  }
+
+  // Extrai ativações
+  const ativacoesMatch = lower.match(/ativaco?es?:(\d+(?:,\d+)*)/);
+  if (ativacoesMatch) {
+    resultado.ativacoes = ativacoesMatch[1].split(',').map(n => parseInt(n.trim()));
+  }
+
+  return resultado;
+}
 
 /*
 ------------------------------------------------
