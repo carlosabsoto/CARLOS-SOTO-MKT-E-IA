@@ -4,13 +4,13 @@ export default async function handler(req, res) {
 
   try {
 
-    if (req.method !== "POST") {
+    if (req.method !== "GET") {
       return res.status(405).json({
         erro: "Método não permitido"
       });
     }
 
-    const { titulo, conteudo } = req.body || {};
+    const { titulo, conteudo } = req.query || {};
 
     if (!conteudo) {
       return res.status(400).json({
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="relatorio-ser-magnetico.pdf"'
+        'attachment; filename="devolutiva-dam.pdf"'
       );
 
       res.send(pdfBuffer);
@@ -48,6 +48,7 @@ export default async function handler(req, res) {
 
     const dataSessao = new Date().toLocaleDateString("pt-BR");
 
+    // CAPA
     doc.fontSize(28).text("SER MAGNÉTICO", { align: "center" });
 
     doc.moveDown();
@@ -64,6 +65,7 @@ export default async function handler(req, res) {
 
     doc.addPage();
 
+    // RESULTADO
     doc.fontSize(18).text("RESULTADO DA SESSÃO", {
       underline: true
     });
