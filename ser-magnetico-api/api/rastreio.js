@@ -33,17 +33,59 @@ function parseLista(valor) {
 
 /*
 ------------------------------------------------
-PARSER TEXTO DAM
+PARSER TEXTO DAM (ACEITA NÚMEROS E POR EXTENSO)
 ------------------------------------------------
 */
 
 function parseRastreioDAM(texto = "") {
 
+  // Normaliza o texto
   const lower = texto
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " "); // Remove espaços extras
+    .replace(/[\u0300-\u036f]/g, "");
+
+  // Mapa completo de números por extenso
+  const numerosExtenso = {
+    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3, 'três': 3,
+    'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9,
+    'dez': 10, 'onze': 11, 'doze': 12, 'treze': 13, 'quatorze': 14, 'quinze': 15,
+    'dezesseis': 16, 'dezessete': 17, 'dezoito': 18, 'dezenove': 19,
+    'vinte': 20, 'vinte e um': 21, 'vinte e dois': 22, 'vinte e tres': 23,
+    'vinte e quatro': 24, 'vinte e cinco': 25, 'vinte e seis': 26,
+    'vinte e sete': 27, 'vinte e oito': 28, 'vinte e nove': 29,
+    'trinta': 30, 'trinta e um': 31, 'trinta e dois': 32, 'trinta e tres': 33,
+    'trinta e quatro': 34, 'trinta e cinco': 35, 'trinta e seis': 36,
+    'quarenta': 40, 'cinquenta': 50, 'sessenta': 60, 'setenta': 70,
+    'oitenta': 80, 'noventa': 90, 'cem': 100, 'cento': 100
+  };
+
+  // Converte números por extenso para dígitos
+  let textoConvertido = lower;
+  
+  // Ordena do mais longo para o mais curto (para pegar "vinte e três" antes de "vinte")
+  const chavesOrdenadas = Object.keys(numerosExtenso).sort((a, b) => b.length - a.length);
+  
+  for (const extenso of chavesOrdenadas) {
+    const regex = new RegExp(`\\b${extenso}\\b`, 'g');
+    textoConvertido = textoConvertido.replace(regex, ` ${numerosExtenso[extenso]} `);
+  }
+
+  console.log("🔄 TEXTO CONVERTIDO:", textoConvertido);
+
+  // Função para extrair números de um padrão
+  function extrairNumeros(regexPattern) {
+    const match = textoConvertido.match(regexPattern);
+    if (!match) return [];
+    
+    // Pega tudo depois do match até encontrar o próximo campo ou fim
+    const textoAposMatch = match[0];
+    const numeros = textoAposMatch.match(/\d+/g);
+    
+    if (!numeros) return [];
+    
+    return numeros.map(n => parseInt(n)).filter(n => !isNaN(n));
+  }
 
   const resultado = {
     cartas: [],
@@ -53,55 +95,25 @@ function parseRastreioDAM(texto = "") {
     ativacoes: []
   };
 
-  // Função auxiliar para extrair números de qualquer parte do texto
-  function extrairNumeros(regex) {
-    const match = lower.match(regex);
-    if (!match || !match[1]) return [];
-    
-    return match[1]
-      .match(/\d+/g)
-      ?.map(n => parseInt(n.trim()))
-      .filter(n => !isNaN(n)) || [];
+  // Extrai cada campo
+  resultado.cartas = extrairNumeros(/(?:carta|campo)[^a-z]*([\d\s,e]+)/i);
+  resultado.areasSistemicas = extrairNumeros(/(?:area[s]?\s+sistemica[s]?|sistemica[s]?)[^a-z]*([\d\s,e]+)/i);
+  resultado.areasDeAtuacao = extrairNumeros(/(?:area[s]?\s+de\s+atuacao|atuacao)[^a-z]*([\d\s,e]+)/i);
+  resultado.desativacoes = extrairNumeros(/(?:desativar|desativac)[^a-z]*([\d\s,e]+)/i);
+  resultado.ativacoes = extrairNumeros(/(?:ativar|ativac)[^a-z]*([\d\s,e]+)/i);
+
+  // Pega apenas o primeiro número para campos únicos
+  if (resultado.cartas.length > 0) {
+    resultado.cartas = [resultado.cartas[0]];
+  }
+  if (resultado.areasSistemicas.length > 0) {
+    resultado.areasSistemicas = [resultado.areasSistemicas[0]];
+  }
+  if (resultado.areasDeAtuacao.length > 0) {
+    resultado.areasDeAtuacao = [resultado.areasDeAtuacao[0]];
   }
 
-  // Tenta vários padrões para cada campo
-
-  // CARTAS
-  resultado.cartas = 
-    extrairNumeros(/cartas?[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/carta[s]?\s+da\s+consciencia[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/campo[:\s]+([0-9,\s]+)/i) ||
-    [];
-
-  // ÁREAS SISTÊMICAS  
-  resultado.areasSistemicas = 
-    extrairNumeros(/areassistemicas?[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/area[s]?\s+sistemica[s]?[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/sistemica[s]?[:\s]+([0-9,\s]+)/i) ||
-    [];
-
-  // ÁREAS DE ATUAÇÃO
-  resultado.areasDeAtuacao = 
-    extrairNumeros(/areasdeatuacao[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/area[s]?\s+de\s+atuacao[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/atuacao[:\s]+([0-9,\s]+)/i) ||
-    [];
-
-  // DESATIVAÇÕES
-  resultado.desativacoes = 
-    extrairNumeros(/desativaco?es?[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/emoco?es?\s+(?:de\s+)?desativaca?o[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/desativar[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/emoco?es?\s+para\s+desativar[:\s]+([0-9,\s]+)/i) ||
-    [];
-
-  // ATIVAÇÕES
-  resultado.ativacoes = 
-    extrairNumeros(/ativaco?es?[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/emoco?es?\s+(?:de\s+)?ativaca?o[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/ativar[:\s]+([0-9,\s]+)/i) ||
-    extrairNumeros(/emoco?es?\s+para\s+ativar[:\s]+([0-9,\s]+)/i) ||
-    [];
+  console.log("✅ RESULTADO DO PARSE:", resultado);
 
   return resultado;
 }
