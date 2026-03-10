@@ -150,6 +150,7 @@ export default async function handler(req, res) {
     if (cursoRaw === "dam" && body.texto) {
 
       console.log("🔎 PARSING TEXTO DAM");
+      console.log("📝 TEXTO RECEBIDO:", body.texto); 
 
       dados = parseRastreioDAM(body.texto);
 
