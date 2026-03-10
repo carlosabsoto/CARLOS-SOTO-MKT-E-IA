@@ -1,4 +1,12 @@
-function dividirBlocos(texto, tamanhoMax = 5000) {
+/*
+------------------------------------------------
+UTIL — DIVIDIR TEXTO EM BLOCOS SEGUROS
+------------------------------------------------
+*/
+
+const LIMITE_BLOCO = 5000;
+
+function dividirTextoSeguro(texto = "") {
 
   if (!texto) return [];
 
@@ -8,9 +16,9 @@ function dividirBlocos(texto, tamanhoMax = 5000) {
 
   while (inicio < texto.length) {
 
-    partes.push(texto.slice(inicio, inicio + tamanhoMax));
+    partes.push(texto.slice(inicio, inicio + LIMITE_BLOCO));
 
-    inicio += tamanhoMax;
+    inicio += LIMITE_BLOCO;
 
   }
 
@@ -18,27 +26,46 @@ function dividirBlocos(texto, tamanhoMax = 5000) {
 
 }
 
-const LIMITE_BLOCO = 12000;
 
-function dividirTextoSeguro(texto = "") {
-
-  const partes = [];
-
-  for (let i = 0; i < texto.length; i += LIMITE_BLOCO) {
-    partes.push(texto.slice(i, i + LIMITE_BLOCO));
-  }
-
-  return partes;
-
-}
+/*
+------------------------------------------------
+AGGREGATOR DAM
+------------------------------------------------
+*/
 
 export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
-  let textoFinal = "";
+  const blocos = [];
+
+  function adicionarBlocos(texto) {
+
+    const partes = dividirTextoSeguro(texto);
+
+    partes.forEach(p => blocos.push(p));
+
+  }
+
+
+  /*
+  ------------------------------------------------
+  MANTRA DE ATIVAÇÃO
+  ------------------------------------------------
+  */
 
   if (mantraAtivacao) {
-    textoFinal += "MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao + "\n\n";
+
+    adicionarBlocos(
+      "MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao + "\n\n"
+    );
+
   }
+
+
+  /*
+  ------------------------------------------------
+  FUNÇÃO DE CATEGORIA
+  ------------------------------------------------
+  */
 
   function adicionarCategoria(titulo, categoria) {
 
@@ -46,24 +73,53 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
     if (!itens || Object.keys(itens).length === 0) return;
 
-    textoFinal += titulo + "\n\n";
+    let textoCategoria = titulo + "\n\n";
 
-    for (const key of Object.keys(itens)) {
-      textoFinal += itens[key] + "\n\n";
+    const keysOrdenadas = Object.keys(itens).sort((a,b)=>Number(a)-Number(b));
+
+    for (const key of keysOrdenadas) {
+
+      textoCategoria += itens[key] + "\n\n";
+
     }
 
+    adicionarBlocos(textoCategoria);
+
   }
+
+
+  /*
+  ------------------------------------------------
+  ORDEM DO DAM
+  ------------------------------------------------
+  */
 
   adicionarCategoria("Cartas da Consciência", "cartas");
+
   adicionarCategoria("Áreas Sistêmicas", "areasSistemicas");
+
   adicionarCategoria("Áreas de Atuação", "areasDeAtuacao");
+
   adicionarCategoria("Desativações", "desativacoes");
+
   adicionarCategoria("Ativações", "ativacoes");
 
+
+  /*
+  ------------------------------------------------
+  MANTRA DE DESATIVAÇÃO
+  ------------------------------------------------
+  */
+
   if (mantraDesativacao) {
-    textoFinal += "MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao;
+
+    adicionarBlocos(
+      "MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao
+    );
+
   }
 
-  return dividirTextoSeguro(textoFinal);
+
+  return blocos;
 
 }
