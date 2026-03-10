@@ -1,28 +1,45 @@
 /*
 ------------------------------------------------
-UTIL — DIVIDIR TEXTO EM BLOCOS SEGUROS
+UTIL — DIVIDIR TEXTO GRANDE
 ------------------------------------------------
 */
 
-const LIMITE_BLOCO = 5000;
+const LIMITE_BLOCO = 4000;
 
 function dividirTextoSeguro(texto = "") {
 
   if (!texto) return [];
 
   const partes = [];
-
   let inicio = 0;
 
   while (inicio < texto.length) {
 
     partes.push(texto.slice(inicio, inicio + LIMITE_BLOCO));
-
     inicio += LIMITE_BLOCO;
 
   }
 
   return partes;
+
+}
+
+
+/*
+------------------------------------------------
+ADICIONAR ITEM COMO BLOCO
+------------------------------------------------
+*/
+
+function adicionarItemComoBloco(blocos, titulo, texto) {
+
+  const conteudo = titulo
+    ? titulo + "\n\n" + texto
+    : texto;
+
+  const partes = dividirTextoSeguro(conteudo);
+
+  partes.forEach(p => blocos.push(p));
 
 }
 
@@ -37,14 +54,6 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
   const blocos = [];
 
-  function adicionarBlocos(texto) {
-
-    const partes = dividirTextoSeguro(texto);
-
-    partes.forEach(p => blocos.push(p));
-
-  }
-
 
   /*
   ------------------------------------------------
@@ -54,8 +63,10 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
   if (mantraAtivacao) {
 
-    adicionarBlocos(
-      "MANTRA DE ATIVAÇÃO\n\n" + mantraAtivacao + "\n\n"
+    adicionarItemComoBloco(
+      blocos,
+      "MANTRA DE ATIVAÇÃO",
+      mantraAtivacao
     );
 
   }
@@ -63,46 +74,117 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
   /*
   ------------------------------------------------
-  FUNÇÃO DE CATEGORIA
+  CARTAS
   ------------------------------------------------
   */
 
-  function adicionarCategoria(titulo, categoria) {
+  if (resultado.cartas) {
 
-    const itens = resultado[categoria];
+    const keys = Object.keys(resultado.cartas).sort((a,b)=>Number(a)-Number(b));
 
-    if (!itens || Object.keys(itens).length === 0) return;
+    for (const key of keys) {
 
-    let textoCategoria = titulo + "\n\n";
-
-    const keysOrdenadas = Object.keys(itens).sort((a,b)=>Number(a)-Number(b));
-
-    for (const key of keysOrdenadas) {
-
-      textoCategoria += itens[key] + "\n\n";
+      adicionarItemComoBloco(
+        blocos,
+        "Cartas da Consciência",
+        resultado.cartas[key]
+      );
 
     }
-
-    adicionarBlocos(textoCategoria);
 
   }
 
 
   /*
   ------------------------------------------------
-  ORDEM DO DAM
+  ÁREAS SISTÊMICAS
   ------------------------------------------------
   */
 
-  adicionarCategoria("Cartas da Consciência", "cartas");
+  if (resultado.areasSistemicas) {
 
-  adicionarCategoria("Áreas Sistêmicas", "areasSistemicas");
+    const keys = Object.keys(resultado.areasSistemicas).sort((a,b)=>Number(a)-Number(b));
 
-  adicionarCategoria("Áreas de Atuação", "areasDeAtuacao");
+    for (const key of keys) {
 
-  adicionarCategoria("Desativações", "desativacoes");
+      adicionarItemComoBloco(
+        blocos,
+        "Áreas Sistêmicas",
+        resultado.areasSistemicas[key]
+      );
 
-  adicionarCategoria("Ativações", "ativacoes");
+    }
+
+  }
+
+
+  /*
+  ------------------------------------------------
+  ÁREAS DE ATUAÇÃO
+  ------------------------------------------------
+  */
+
+  if (resultado.areasDeAtuacao) {
+
+    const keys = Object.keys(resultado.areasDeAtuacao).sort((a,b)=>Number(a)-Number(b));
+
+    for (const key of keys) {
+
+      adicionarItemComoBloco(
+        blocos,
+        "Áreas de Atuação",
+        resultado.areasDeAtuacao[key]
+      );
+
+    }
+
+  }
+
+
+  /*
+  ------------------------------------------------
+  DESATIVAÇÕES
+  ------------------------------------------------
+  */
+
+  if (resultado.desativacoes) {
+
+    const keys = Object.keys(resultado.desativacoes).sort((a,b)=>Number(a)-Number(b));
+
+    for (const key of keys) {
+
+      adicionarItemComoBloco(
+        blocos,
+        "Desativações",
+        resultado.desativacoes[key]
+      );
+
+    }
+
+  }
+
+
+  /*
+  ------------------------------------------------
+  ATIVAÇÕES
+  ------------------------------------------------
+  */
+
+  if (resultado.ativacoes) {
+
+    const keys = Object.keys(resultado.ativacoes).sort((a,b)=>Number(a)-Number(b));
+
+    for (const key of keys) {
+
+      adicionarItemComoBloco(
+        blocos,
+        "Ativações",
+        resultado.ativacoes[key]
+      );
+
+    }
+
+  }
 
 
   /*
@@ -113,8 +195,10 @@ export function aggregateDAM(resultado, mantraAtivacao, mantraDesativacao) {
 
   if (mantraDesativacao) {
 
-    adicionarBlocos(
-      "MANTRA DE DESATIVAÇÃO\n\n" + mantraDesativacao
+    adicionarItemComoBloco(
+      blocos,
+      "MANTRA DE DESATIVAÇÃO",
+      mantraDesativacao
     );
 
   }
