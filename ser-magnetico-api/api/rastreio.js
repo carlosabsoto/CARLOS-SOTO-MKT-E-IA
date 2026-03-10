@@ -135,6 +135,10 @@ export default async function handler(req, res) {
         }
       };
 
+      if (req.query.texto) {
+        body.texto = req.query.texto;
+      }
+
     }
 
     else if (req.method === "POST") {
@@ -175,9 +179,8 @@ export default async function handler(req, res) {
 
     const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
 
-    console.log("CURSO RECEBIDO:", cursoRaw);
-    console.log("CURSO NORMALIZADO:", curso);
-    console.log("DADOS RECEBIDOS:", JSON.stringify(dados, null, 2));
+    console.log("CURSO:", curso);
+    console.log("DADOS:", dados);
 
 
     let paths;
@@ -297,7 +300,7 @@ export default async function handler(req, res) {
 
     /*
     ------------------------------------------------
-    CARREGAR CONTEÚDO
+    CARREGAR CONTEÚDO (FETCH PARALELO)
     ------------------------------------------------
     */
 
@@ -305,21 +308,19 @@ export default async function handler(req, res) {
 
       if (!numeros || !Array.isArray(numeros)) return;
 
-      for (const n of numeros) {
+      const tarefas = numeros.map(async (n) => {
 
         const path = resolver(n);
-        if (!path) continue;
+        if (!path) return;
 
         try {
 
           const conteudo = await fetchFromGitHub(path);
-          if (!conteudo) continue;
+          if (!conteudo) return;
 
           if (!resultado[categoria]) resultado[categoria] = {};
 
           resultado[categoria][n] = conteudo;
-
-          console.log("✔ CONTEÚDO SALVO:", categoria, n);
 
         } catch (err) {
 
@@ -327,7 +328,9 @@ export default async function handler(req, res) {
 
         }
 
-      }
+      });
+
+      await Promise.all(tarefas);
 
     }
 
@@ -338,6 +341,8 @@ export default async function handler(req, res) {
     ------------------------------------------------
     */
 
+    const tarefasCategorias = [];
+
     for (const categoriaRecebida in dados) {
 
       const categoriaInterna = mapaCategorias[categoriaRecebida];
@@ -347,30 +352,38 @@ export default async function handler(req, res) {
 
       if (typeof resolver === "function") {
 
-        await carregar(
-          categoriaInterna,
-          dados[categoriaRecebida],
-          resolver
+        tarefasCategorias.push(
+          carregar(
+            categoriaInterna,
+            dados[categoriaRecebida],
+            resolver
+          )
         );
 
       }
 
     }
 
+    await Promise.all(tarefasCategorias);
+
 
     /*
     ------------------------------------------------
-    MANTRAS
+    MANTRAS (PARALELO)
     ------------------------------------------------
     */
 
-    const mantraAtivacao = paths.mantraAtivacao
-      ? await fetchFromGitHub(paths.mantraAtivacao)
-      : "";
+    const [mantraAtivacao, mantraDesativacao] = await Promise.all([
 
-    const mantraDesativacao = paths.mantraDesativacao
-      ? await fetchFromGitHub(paths.mantraDesativacao)
-      : "";
+      paths.mantraAtivacao
+        ? fetchFromGitHub(paths.mantraAtivacao)
+        : "",
+
+      paths.mantraDesativacao
+        ? fetchFromGitHub(paths.mantraDesativacao)
+        : ""
+
+    ]);
 
 
     /*
