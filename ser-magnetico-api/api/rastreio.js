@@ -33,35 +33,71 @@ function parseLista(valor) {
 
 /*
 ------------------------------------------------
-PARSER TEXTO DAM
+PARSER TEXTO DAM (ROBUSTO)
 ------------------------------------------------
 */
 
 function parseRastreioDAM(texto = "") {
 
-  const lower = texto.toLowerCase();
+  const lower = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
-  function extrairNumeros(regex) {
+  function extrairTodosNumeros(regex) {
 
-    const match = lower.match(regex);
+    const encontrados = [];
+    let match;
 
-    if (!match) return [];
+    while ((match = regex.exec(lower)) !== null) {
 
-    return (match[1].match(/\d+/g) || []).map(n => Number(n));
+      if (match[1]) {
+
+        const nums = match[1].match(/\d+/g);
+
+        if (nums) {
+
+          nums.forEach(n => {
+
+            const num = Number(n);
+
+            if (!isNaN(num)) {
+              encontrados.push(num);
+            }
+
+          });
+
+        }
+
+      }
+
+    }
+
+    return [...new Set(encontrados)];
 
   }
 
   return {
 
-    cartas: extrairNumeros(/carta[^0-9]*([\d,\se]+)/),
+    cartas: extrairTodosNumeros(
+      /(?:carta|campo)[^0-9]*([\d,\se]+)/g
+    ),
 
-    areasSistemicas: extrairNumeros(/area[s]?\s*sistemica[s]?[^0-9]*([\d,\se]+)/),
+    areasSistemicas: extrairTodosNumeros(
+      /(?:area[s]?\s*sistemica[s]?|sistemica[s]?)[^0-9]*([\d,\se]+)/g
+    ),
 
-    areasDeAtuacao: extrairNumeros(/area[s]?\s*de\s*atuacao[^0-9]*([\d,\se]+)/),
+    areasDeAtuacao: extrairTodosNumeros(
+      /(?:area[s]?\s*de\s*atuacao|atuacao)[^0-9]*([\d,\se]+)/g
+    ),
 
-    desativacoes: extrairNumeros(/desativac[aã]o(?:es)?[^0-9]*([\d,\se]+)/),
+    desativacoes: extrairTodosNumeros(
+      /(?:desativac(?:ao|oes)|emoc(?:ao|oes)?\s*desativad(?:a|as)?)[^0-9]*([\d,\se]+)/g
+    ),
 
-    ativacoes: extrairNumeros(/ativac[aã]o(?:es)?[^0-9]*([\d,\se]+)/)
+    ativacoes: extrairTodosNumeros(
+      /(?:ativac(?:ao|oes)|emoc(?:ao|oes)?\s*ativad(?:a|as)?)[^0-9]*([\d,\se]+)/g
+    )
 
   };
 
