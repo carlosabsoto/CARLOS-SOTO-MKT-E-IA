@@ -21,80 +21,111 @@ function parseLista(valor) {
 
   if (!valor) return [];
 
-  if (Array.isArray(valor)) return valor.map(Number);
+  if (Array.isArray(valor)) {
+    return [...new Set(valor.map(Number))];
+  }
 
-  return String(valor)
-    .split(",")
-    .map(v => Number(v.trim()))
-    .filter(v => !isNaN(v));
+  return [...new Set(
+    String(valor)
+      .split(",")
+      .map(v => Number(v.trim()))
+      .filter(v => !isNaN(v))
+  )];
 
 }
 
 
 /*
 ------------------------------------------------
-PARSER TEXTO DAM (VERSÃO CORRIGIDA)
+REMOVER DUPLICADOS
+------------------------------------------------
+*/
+
+function limparDuplicados(dados = {}) {
+
+  for (const chave in dados) {
+
+    if (Array.isArray(dados[chave])) {
+
+      dados[chave] = [...new Set(dados[chave])];
+
+    }
+
+  }
+
+  return dados;
+
+}
+
+
+/*
+------------------------------------------------
+PARSER TEXTO DAM
 ------------------------------------------------
 */
 
 function parseRastreioDAM(texto = "") {
 
-  // Normaliza o texto
   const lower = texto
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 
-  // Mapa completo de números por extenso
   const numerosExtenso = {
-    'zero': 0, 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'tres': 3,
-    'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9,
-    'dez': 10, 'onze': 11, 'doze': 12, 'treze': 13, 'quatorze': 14, 'quinze': 15,
-    'dezesseis': 16, 'dezessete': 17, 'dezoito': 18, 'dezenove': 19,
-    'vinte': 20, 'vinte e um': 21, 'vinte e dois': 22, 'vinte e tres': 23,
-    'vinte e quatro': 24, 'vinte e cinco': 25, 'vinte e seis': 26,
-    'vinte e sete': 27, 'vinte e oito': 28, 'vinte e nove': 29,
-    'trinta': 30, 'trinta e um': 31, 'trinta e dois': 32, 'trinta e tres': 33,
-    'trinta e quatro': 34, 'trinta e cinco': 35, 'trinta e seis': 36,
-    'quarenta': 40, 'cinquenta': 50, 'sessenta': 60, 'setenta': 70,
-    'oitenta': 80, 'noventa': 90, 'cem': 100, 'cento': 100
+    zero:0, um:1, uma:1, dois:2, duas:2, tres:3,
+    quatro:4, cinco:5, seis:6, sete:7, oito:8, nove:9,
+    dez:10, onze:11, doze:12, treze:13, quatorze:14, quinze:15,
+    dezesseis:16, dezessete:17, dezoito:18, dezenove:19,
+    vinte:20, "vinte e um":21, "vinte e dois":22, "vinte e tres":23,
+    "vinte e quatro":24, "vinte e cinco":25, "vinte e seis":26,
+    "vinte e sete":27, "vinte e oito":28, "vinte e nove":29,
+    trinta:30, "trinta e um":31, "trinta e dois":32, "trinta e tres":33,
+    "trinta e quatro":34, "trinta e cinco":35
   };
 
-  // Converte números por extenso para dígitos
   let textoConvertido = lower;
-  
-  // Ordena do mais longo para o mais curto
-  const chavesOrdenadas = Object.keys(numerosExtenso).sort((a, b) => b.length - a.length);
-  
+
+  const chavesOrdenadas = Object.keys(numerosExtenso).sort((a,b)=>b.length-a.length);
+
   for (const extenso of chavesOrdenadas) {
-    const regex = new RegExp(`\\b${extenso}\\b`, 'g');
+
+    const regex = new RegExp(`\\b${extenso}\\b`, "g");
+
     textoConvertido = textoConvertido.replace(regex, ` ${numerosExtenso[extenso]} `);
+
   }
 
   console.log("🔄 TEXTO CONVERTIDO:", textoConvertido);
 
-  // Função melhorada para extrair seção específica
   function extrairSecao(inicio, fim) {
-    const regexInicio = new RegExp(inicio, 'i');
-    const regexFim = fim ? new RegExp(fim, 'i') : null;
-    
+
+    const regexInicio = new RegExp(inicio, "i");
+    const regexFim = fim ? new RegExp(fim, "i") : null;
+
     const matchInicio = textoConvertido.match(regexInicio);
     if (!matchInicio) return [];
-    
+
     const posInicio = matchInicio.index + matchInicio[0].length;
+
     let posFim = textoConvertido.length;
-    
+
     if (regexFim) {
+
       const matchFim = textoConvertido.slice(posInicio).match(regexFim);
-      if (matchFim) {
-        posFim = posInicio + matchFim.index;
-      }
+
+      if (matchFim) posFim = posInicio + matchFim.index;
+
     }
-    
+
     const secao = textoConvertido.slice(posInicio, posFim);
+
     const numeros = secao.match(/\d+/g);
-    
-    return numeros ? numeros.map(n => parseInt(n)).filter(n => !isNaN(n)) : [];
+
+    if (!numeros) return [];
+
+    return [...new Set(numeros.map(n=>parseInt(n)).filter(n=>!isNaN(n)))];
+
   }
 
   const resultado = {
@@ -105,47 +136,41 @@ function parseRastreioDAM(texto = "") {
     ativacoes: []
   };
 
-  // Extrai cada campo com delimitadores claros
   resultado.cartas = extrairSecao(
-    'carta[s]?\\s+da\\s+consciencia|carta[s]?\\s*:',
-    'area[s]?\\s+sistemica|area[s]?\\s*:'
+    "carta[s]?\\s+da\\s+consciencia|carta[s]?\\s*:",
+    "area[s]?\\s+sistemica"
   );
 
   resultado.areasSistemicas = extrairSecao(
-    'area[s]?\\s+sistemica[s]?|sistemica[s]?\\s*:',
-    'area[s]?\\s+de\\s+atuacao|atuacao\\s*:'
+    "area[s]?\\s+sistemica",
+    "area[s]?\\s+de\\s+atuacao|atuacao"
   );
 
   resultado.areasDeAtuacao = extrairSecao(
-    'area[s]?\\s+de\\s+atuacao|atuacao\\s*:',
-    'desativar|desativac|emoco?es?\\s+para\\s+desativar'
+    "area[s]?\\s+de\\s+atuacao|atuacao",
+    "desativar|desativac"
   );
 
   resultado.desativacoes = extrairSecao(
-    'desativar|desativac|emoco?es?\\s+para\\s+desativar',
-    'ativar|ativac|emoco?es?\\s+para\\s+ativar'
+    "desativar|desativac",
+    "ativar|ativac"
   );
 
   resultado.ativacoes = extrairSecao(
-    'ativar|ativac|emoco?es?\\s+para\\s+ativar',
-    null // até o fim
+    "ativar|ativac",
+    null
   );
 
-  // Pega apenas o primeiro para campos únicos
-  if (resultado.cartas.length > 0) {
-    resultado.cartas = [resultado.cartas[0]];
-  }
-  if (resultado.areasSistemicas.length > 0) {
-    resultado.areasSistemicas = [resultado.areasSistemicas[0]];
-  }
-  if (resultado.areasDeAtuacao.length > 0) {
-    resultado.areasDeAtuacao = [resultado.areasDeAtuacao[0]];
-  }
+  if (resultado.cartas.length > 0) resultado.cartas = [resultado.cartas[0]];
+  if (resultado.areasSistemicas.length > 0) resultado.areasSistemicas = [resultado.areasSistemicas[0]];
+  if (resultado.areasDeAtuacao.length > 0) resultado.areasDeAtuacao = [resultado.areasDeAtuacao[0]];
 
   console.log("✅ RESULTADO DO PARSE:", resultado);
 
-  return resultado;
+  return limparDuplicados(resultado);
+
 }
+
 
 /*
 ------------------------------------------------
@@ -153,400 +178,302 @@ HANDLER
 ------------------------------------------------
 */
 
-export default async function handler(req, res) {
+export default async function handler(req,res){
 
-  try {
+try{
 
-    let body = {};
+let body={};
 
-    /*
-    ------------------------------------------------
-    SUPORTE GET + POST
-    ------------------------------------------------
-    */
+/*
+---------------------------------------------
+SUPORTE GET + POST
+---------------------------------------------
+*/
 
-    if (req.method === "GET") {
+if(req.method==="GET"){
 
-      body = {
-        curso: req.query.curso,
-        dados: {
-          cartas: parseLista(req.query.cartas),
-          areasSistemicas: parseLista(req.query.areasSistemicas),
-          areasDeAtuacao: parseLista(req.query.areasDeAtuacao),
-          desativacoes: parseLista(req.query.desativacoes),
-          ativacoes: parseLista(req.query.ativacoes)
-        }
-      };
+body={
+curso:req.query.curso,
+dados:{
+cartas:parseLista(req.query.cartas),
+areasSistemicas:parseLista(req.query.areasSistemicas),
+areasDeAtuacao:parseLista(req.query.areasDeAtuacao),
+desativacoes:parseLista(req.query.desativacoes),
+ativacoes:parseLista(req.query.ativacoes)
+}
+};
 
-      if (req.query.texto) {
-        body.texto = req.query.texto;
-      }
+if(req.query.texto) body.texto=req.query.texto;
 
-    }
+}
 
-    else if (req.method === "POST") {
+else if(req.method==="POST"){
 
-      body = req.body || {};
+body=req.body||{};
 
-    }
+}
 
-    else {
+else{
 
-      return res.status(405).json({
-        success: false,
-        erro: "Método não permitido"
-      });
+return res.status(405).json({
+success:false,
+erro:"Método não permitido"
+});
 
-    }
+}
 
+const cursoRaw=body.curso||"dam";
+let dados=body.dados||body||{};
 
-    const cursoRaw = body.curso || "dam";
-    let dados = body.dados || body || {};
+/*
+---------------------------------------------
+TEXTO LIVRE DAM
+---------------------------------------------
+*/
 
+if(cursoRaw==="dam"&&body.texto){
 
-    /*
-    ------------------------------------------------
-    TEXTO LIVRE DAM
-    ------------------------------------------------
-    */
+console.log("🔎 PARSING TEXTO DAM");
+console.log("📝 TEXTO RECEBIDO:",body.texto);
 
-    if (cursoRaw === "dam" && body.texto) {
+dados=parseRastreioDAM(body.texto);
 
-      console.log("🔎 PARSING TEXTO DAM");
-      console.log("📝 TEXTO RECEBIDO:", body.texto); 
+}
 
-      dados = parseRastreioDAM(body.texto);
+dados=limparDuplicados(dados);
 
-    }
+const curso=cursoRaw.toLowerCase().replace(/[-_]/g,"");
 
+console.log("CURSO:",curso);
+console.log("DADOS:",dados);
 
-    const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
+let paths;
+let aggregator;
+let resultado={};
+let mapaCategorias={};
 
-    console.log("CURSO:", curso);
-    console.log("DADOS:", dados);
+switch(curso){
 
+case"dam":
 
-    let paths;
-    let aggregator;
-    let resultado = {};
-    let mapaCategorias = {};
+paths=damPaths;
+aggregator=aggregateDAM;
 
+resultado={
+cartas:{},
+areasSistemicas:{},
+areasDeAtuacao:{},
+desativacoes:{},
+ativacoes:{}
+};
 
-    /*
-    ------------------------------------------------
-    CONFIGURAÇÃO POR CURSO
-    ------------------------------------------------
-    */
+mapaCategorias={
+cartas:"cartas",
+areasSistemicas:"areasSistemicas",
+areasDeAtuacao:"areasDeAtuacao",
+desativacoes:"desativacoes",
+ativacoes:"ativacoes"
+};
 
-    switch (curso) {
+break;
 
-      case "dam":
+case"espiritos":
+case"espiritosmiasmas":
 
-        paths = damPaths;
-        aggregator = aggregateDAM;
+paths=espiritosPaths;
+aggregator=aggregateEspiritos;
 
-        resultado = {
-          cartas: {},
-          areasSistemicas: {},
-          areasDeAtuacao: {},
-          desativacoes: {},
-          ativacoes: {}
-        };
+resultado={
+fechamentoPortais:{},
+cancelamentoPactos:{},
+liberacaoEspiritos:{},
+energiasDensas:{},
+associacaoEmocional:{},
+miasmas:{},
+mantras:{}
+};
 
-        mapaCategorias = {
-          cartas: "cartas",
-          areasSistemicas: "areasSistemicas",
-          areasDeAtuacao: "areasDeAtuacao",
-          desativacoes: "desativacoes",
-          ativacoes: "ativacoes"
-        };
+mapaCategorias={
+portais:"fechamentoPortais",
+pactos:"cancelamentoPactos",
+espiritos:"liberacaoEspiritos",
+energias:"energiasDensas",
+associacoes:"associacaoEmocional",
+miasmas:"miasmas",
+mantras:"mantras"
+};
 
-      break;
+break;
 
+case"biohumano":
 
-      case "espiritos":
-      case "espiritosmiasmas":
+paths=bioHumanoPaths;
+aggregator=aggregateBioHumano;
 
-        paths = espiritosPaths;
-        aggregator = aggregateEspiritos;
+resultado={
+paresEmocionais:{},
+reservatorios:{},
+rastreioGeral:{},
+protocolos:{},
+sistemas:{}
+};
 
-        resultado = {
-          fechamentoPortais: {},
-          cancelamentoPactos: {},
-          liberacaoEspiritos: {},
-          energiasDensas: {},
-          associacaoEmocional: {},
-          miasmas: {},
-          mantras: {}
-        };
+mapaCategorias={
+paresEmocionais:"paresEmocionais",
+reservatorios:"reservatorios",
+rastreioGeral:"rastreioGeral",
+protocolos:"protocolos"
+};
 
-        mapaCategorias = {
-          portais: "fechamentoPortais",
-          pactos: "cancelamentoPactos",
-          espiritos: "liberacaoEspiritos",
-          energias: "energiasDensas",
-          associacoes: "associacaoEmocional",
-          miasmas: "miasmas",
-          mantras: "mantras"
-        };
+break;
 
-      break;
+case"bioanimal":
 
+paths=bioAnimalPaths;
+aggregator=aggregateBioAnimal;
 
-      case "biohumano":
+resultado={
+paresEmocionais:{},
+reservatorios:{},
+rastreioGeral:{},
+sistemas:{}
+};
 
-        paths = bioHumanoPaths;
-        aggregator = aggregateBioHumano;
+mapaCategorias={
+paresEmocionais:"paresEmocionais",
+reservatorios:"reservatorios",
+rastreioGeral:"rastreioGeral"
+};
 
-        resultado = {
-          paresEmocionais: {},
-          reservatorios: {},
-          rastreioGeral: {},
-          protocolos: {},
-          sistemas: {}
-        };
+break;
 
-        mapaCategorias = {
-          paresEmocionais: "paresEmocionais",
-          reservatorios: "reservatorios",
-          rastreioGeral: "rastreioGeral",
-          protocolos: "protocolos"
-        };
+default:
 
-      break;
+return res.status(400).json({
+success:false,
+erro:"Curso inválido"
+});
 
+}
 
-      case "bioanimal":
+/*
+---------------------------------------------
+FETCH PARALELO
+---------------------------------------------
+*/
 
-        paths = bioAnimalPaths;
-        aggregator = aggregateBioAnimal;
+async function carregar(categoria,numeros,resolver){
 
-        resultado = {
-          paresEmocionais: {},
-          reservatorios: {},
-          rastreioGeral: {},
-          sistemas: {}
-        };
+if(!numeros||!Array.isArray(numeros))return;
 
-        mapaCategorias = {
-          paresEmocionais: "paresEmocionais",
-          reservatorios: "reservatorios",
-          rastreioGeral: "rastreioGeral"
-        };
+const tarefas=[...new Set(numeros)].map(async n=>{
 
-      break;
+const path=resolver(n);
+if(!path)return;
 
+try{
 
-      default:
+const conteudo=await fetchFromGitHub(path);
 
-        return res.status(400).json({
-          success: false,
-          erro: "Curso inválido"
-        });
+if(!resultado[categoria])resultado[categoria]={};
 
-    }
+resultado[categoria][n]=conteudo;
 
+}catch{
 
-    /*
-    ------------------------------------------------
-    FUNÇÃO DE FETCH PARALELO
-    ------------------------------------------------
-    */
+console.log("Erro ao buscar:",path);
 
-    async function carregar(categoria, numeros, resolver) {
+}
 
-      if (!numeros || !Array.isArray(numeros)) return;
+});
 
-      const tarefas = numeros.map(async (n) => {
+await Promise.all(tarefas);
 
-        const path = resolver(n);
-        if (!path) return;
+}
 
-        try {
+/*
+---------------------------------------------
+EXECUÇÃO
+---------------------------------------------
+*/
 
-          const conteudo = await fetchFromGitHub(path);
+const tarefas=[];
 
-          if (!resultado[categoria]) resultado[categoria] = {};
+for(const categoriaRecebida in dados){
 
-          resultado[categoria][n] = conteudo;
+const categoriaInterna=mapaCategorias[categoriaRecebida];
+if(!categoriaInterna)continue;
 
-        } catch (err) {
+const resolver=paths[categoriaInterna];
 
-          console.log("Erro ao buscar:", path);
+if(typeof resolver==="function"){
 
-        }
+tarefas.push(
+carregar(
+categoriaInterna,
+dados[categoriaRecebida],
+resolver
+)
+);
 
-      });
+}
 
-      await Promise.all(tarefas);
+}
 
-    }
+await Promise.all(tarefas);
 
+/*
+---------------------------------------------
+MANTRAS
+---------------------------------------------
+*/
 
-    /*
-    ------------------------------------------------
-    EXECUÇÃO CATEGORIAS NORMAIS
-    ------------------------------------------------
-    */
+const [mantraAtivacao,mantraDesativacao]=await Promise.all([
 
-    const tarefas = [];
+paths.mantraAtivacao
+?fetchFromGitHub(paths.mantraAtivacao)
+:"",
 
-    for (const categoriaRecebida in dados) {
+paths.mantraDesativacao
+?fetchFromGitHub(paths.mantraDesativacao)
+:""
 
-      const categoriaInterna = mapaCategorias[categoriaRecebida];
-      if (!categoriaInterna) continue;
+]);
 
-      const resolver = paths[categoriaInterna];
+/*
+---------------------------------------------
+AGREGAÇÃO
+---------------------------------------------
+*/
 
-      if (typeof resolver === "function") {
+const blocos=aggregator(
+resultado,
+mantraAtivacao,
+mantraDesativacao
+);
 
-        tarefas.push(
-          carregar(
-            categoriaInterna,
-            dados[categoriaRecebida],
-            resolver
-          )
-        );
+const resultadoBlocos=Array.isArray(blocos)
+?blocos
+:[blocos];
 
-      }
+return res.status(200).json({
+success:true,
+curso:cursoRaw,
+resultado:resultadoBlocos
+});
 
-    }
+}
 
-    await Promise.all(tarefas);
+catch(erro){
 
+console.error("Erro rastreio:",erro);
 
-    /*
-    ------------------------------------------------
-    SISTEMAS
-    ------------------------------------------------
-    */
+return res.status(500).json({
+success:false,
+erro:"Erro interno",
+detalhes:erro.message
+});
 
-    if ((curso === "biohumano" || curso === "bioanimal") && dados.sistemas) {
-
-      const tarefasSistema = dados.sistemas.map(async (s) => {
-
-        try {
-
-          const pathSistema = paths.sistemas(s);
-
-          console.log("🔎 BUSCANDO:", pathSistema);
-
-          const textoSistema = await fetchFromGitHub(pathSistema);
-
-          resultado.sistemas[s] = {
-            texto: textoSistema,
-            pares: {}
-          };
-
-        } catch {
-
-          console.log("Erro sistema:", s);
-
-        }
-
-      });
-
-      await Promise.all(tarefasSistema);
-
-    }
-
-
-    /*
-    ------------------------------------------------
-    PARES DOS SISTEMAS
-    ------------------------------------------------
-    */
-
-    if ((curso === "biohumano" || curso === "bioanimal") && dados.paresSistema) {
-
-      const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
-
-        try {
-
-          const pathPar = paths.paresSistema(sistema, par);
-
-          console.log("🔎 BUSCANDO:", pathPar);
-
-          const textoPar = await fetchFromGitHub(pathPar);
-
-          if (!resultado.sistemas[sistema]) {
-
-            resultado.sistemas[sistema] = {
-              texto: "",
-              pares: {}
-            };
-
-          }
-
-          resultado.sistemas[sistema].pares[par] = textoPar;
-
-        } catch {
-
-          console.log("Erro par:", sistema, par);
-
-        }
-
-      });
-
-      await Promise.all(tarefasPares);
-
-    }
-
-
-    /*
-    ------------------------------------------------
-    MANTRAS
-    ------------------------------------------------
-    */
-
-    const [mantraAtivacao, mantraDesativacao] = await Promise.all([
-
-      paths.mantraAtivacao
-        ? fetchFromGitHub(paths.mantraAtivacao)
-        : "",
-
-      paths.mantraDesativacao
-        ? fetchFromGitHub(paths.mantraDesativacao)
-        : ""
-
-    ]);
-
-
-    /*
-    ------------------------------------------------
-    AGREGAÇÃO FINAL
-    ------------------------------------------------
-    */
-
-    const blocos = aggregator(
-      resultado,
-      mantraAtivacao,
-      mantraDesativacao
-    );
-
-    const resultadoBlocos = Array.isArray(blocos)
-      ? blocos
-      : [blocos];
-
-
-    return res.status(200).json({
-      success: true,
-      curso: cursoRaw,
-      resultado: resultadoBlocos
-    });
-
-  }
-
-  catch (erro) {
-
-    console.error("Erro rastreio:", erro);
-
-    return res.status(500).json({
-      success: false,
-      erro: "Erro interno",
-      detalhes: erro.message
-    });
-
-  }
+}
 
 }
