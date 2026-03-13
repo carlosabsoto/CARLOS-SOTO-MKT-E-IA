@@ -230,11 +230,11 @@ let dados=body.dados||body||{};
 TEXTO LIVRE DAM
 ---------------------------------------------
 */
-
+  
 if(cursoRaw==="dam"&&body.texto){
 
-console.log("🔎 PARSING TEXTO DAM");
-console.log("📝 TEXTO RECEBIDO:",body.texto);
+//console.log("🔎 PARSING TEXTO DAM");
+//console.log("📝 TEXTO RECEBIDO:",body.texto);
 
 dados=parseRastreioDAM(body.texto);
 
@@ -246,7 +246,8 @@ const curso=cursoRaw.toLowerCase().replace(/[-_]/g,"");
 
 console.log("CURSO:",curso);
 console.log("DADOS:",dados);
-
+console.log("📝 TEXTO RECEBIDO:",body.texto);
+  
 let paths;
 let aggregator;
 let resultado={};
