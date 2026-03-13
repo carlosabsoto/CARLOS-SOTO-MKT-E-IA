@@ -86,6 +86,23 @@ function parseRastreioDAM(texto = "") {
 
   let textoConvertido = lower;
 
+  /*
+  ------------------------------------------------
+  REMOVER PALAVRAS QUE INDICAM AUSÊNCIA
+  ------------------------------------------------
+  */
+
+  textoConvertido = textoConvertido.replace(
+    /\b(nenhum|nenhuma|nulo|nula|vazio|vazia|sem|nao tem|não tem)\b/g,
+    " "
+  );
+
+  /*
+  ------------------------------------------------
+  CONVERSÃO DE NÚMEROS POR EXTENSO
+  ------------------------------------------------
+  */
+
   const chavesOrdenadas = Object.keys(numerosExtenso).sort((a,b)=>b.length-a.length);
 
   for (const extenso of chavesOrdenadas) {
@@ -97,6 +114,12 @@ function parseRastreioDAM(texto = "") {
   }
 
   console.log("🔄 TEXTO CONVERTIDO:", textoConvertido);
+
+  /*
+  ------------------------------------------------
+  FUNÇÃO DE EXTRAÇÃO
+  ------------------------------------------------
+  */
 
   function extrairSecao(inicio, fim) {
 
@@ -124,7 +147,9 @@ function parseRastreioDAM(texto = "") {
 
     if (!numeros) return [];
 
-    return [...new Set(numeros.map(n=>parseInt(n)).filter(n=>!isNaN(n)))];
+    return [...new Set(
+      numeros.map(n => parseInt(n)).filter(n => !isNaN(n))
+    )];
 
   }
 
@@ -135,6 +160,12 @@ function parseRastreioDAM(texto = "") {
     desativacoes: [],
     ativacoes: []
   };
+
+  /*
+  ------------------------------------------------
+  EXTRAÇÃO
+  ------------------------------------------------
+  */
 
   resultado.cartas = extrairSecao(
     "carta[s]?\\s+da\\s+consciencia|carta[s]?\\s*:",
@@ -161,16 +192,26 @@ function parseRastreioDAM(texto = "") {
     null
   );
 
-  if (resultado.cartas.length > 0) resultado.cartas = [resultado.cartas[0]];
-  if (resultado.areasSistemicas.length > 0) resultado.areasSistemicas = [resultado.areasSistemicas[0]];
-  if (resultado.areasDeAtuacao.length > 0) resultado.areasDeAtuacao = [resultado.areasDeAtuacao[0]];
+  /*
+  ------------------------------------------------
+  CAMPOS ÚNICOS
+  ------------------------------------------------
+  */
+
+  if (resultado.cartas.length > 0) {
+    resultado.cartas = [resultado.cartas[0]];
+  }
+
+  /*
+  NÃO limitamos mais áreas sistêmicas e de atuação
+  para permitir múltiplos valores.
+  */
 
   console.log("✅ RESULTADO DO PARSE:", resultado);
 
   return limparDuplicados(resultado);
 
 }
-
 
 /*
 ------------------------------------------------
