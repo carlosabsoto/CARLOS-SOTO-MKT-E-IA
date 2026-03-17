@@ -10,7 +10,6 @@ import { aggregateBioAnimal } from "../services/aggregatorBioAnimal.js";
 
 import { fetchFromGitHub } from "../services/githubService.js";
 
-
 /*
 ------------------------------------------------
 UTILS
@@ -18,7 +17,6 @@ UTILS
 */
 
 function parseLista(valor) {
-
   if (!valor) return [];
 
   if (Array.isArray(valor)) {
@@ -31,9 +29,7 @@ function parseLista(valor) {
       .map(v => Number(v.trim()))
       .filter(v => !isNaN(v))
   )];
-
 }
-
 
 /*
 ------------------------------------------------
@@ -42,175 +38,12 @@ REMOVER DUPLICADOS
 */
 
 function limparDuplicados(dados = {}) {
-
   for (const chave in dados) {
-
     if (Array.isArray(dados[chave])) {
-
       dados[chave] = [...new Set(dados[chave])];
-
     }
-
   }
-
   return dados;
-
-}
-
-
-/*
-------------------------------------------------
-PARSER TEXTO DAM
-------------------------------------------------
-*/
-
-function parseRastreioDAM(texto = "") {
-
-  const lower = texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-
-  const numerosExtenso = {
-    zero:0, um:1, uma:1, dois:2, duas:2, tres:3,
-    quatro:4, cinco:5, seis:6, sete:7, oito:8, nove:9,
-    dez:10, onze:11, doze:12, treze:13, quatorze:14, quinze:15,
-    dezesseis:16, dezessete:17, dezoito:18, dezenove:19,
-    vinte:20, "vinte e um":21, "vinte e dois":22, "vinte e tres":23,
-    "vinte e quatro":24, "vinte e cinco":25, "vinte e seis":26,
-    "vinte e sete":27, "vinte e oito":28, "vinte e nove":29,
-    trinta:30, "trinta e um":31, "trinta e dois":32, "trinta e tres":33,
-    "trinta e quatro":34, "trinta e cinco":35
-  };
-
-  let textoConvertido = lower;
-
-  /*
-  ------------------------------------------------
-  REMOVER PALAVRAS QUE INDICAM AUSÊNCIA
-  ------------------------------------------------
-  */
-
-  textoConvertido = textoConvertido.replace(
-    /\b(nenhum|nenhuma|nulo|nula|vazio|vazia|sem|nao tem|não tem)\b/g,
-    " "
-  );
-
-  /*
-  ------------------------------------------------
-  CONVERSÃO DE NÚMEROS POR EXTENSO
-  ------------------------------------------------
-  */
-
-  const chavesOrdenadas = Object.keys(numerosExtenso).sort((a,b)=>b.length-a.length);
-
-  for (const extenso of chavesOrdenadas) {
-
-    const regex = new RegExp(`\\b${extenso}\\b`, "g");
-
-    textoConvertido = textoConvertido.replace(regex, ` ${numerosExtenso[extenso]} `);
-
-  }
-
-  console.log("🔄 TEXTO CONVERTIDO:", textoConvertido);
-
-  /*
-  ------------------------------------------------
-  FUNÇÃO DE EXTRAÇÃO
-  ------------------------------------------------
-  */
-
-  function extrairSecao(inicio, fim) {
-
-    const regexInicio = new RegExp(inicio, "i");
-    const regexFim = fim ? new RegExp(fim, "i") : null;
-
-    const matchInicio = textoConvertido.match(regexInicio);
-    if (!matchInicio) return [];
-
-    const posInicio = matchInicio.index + matchInicio[0].length;
-
-    let posFim = textoConvertido.length;
-
-    if (regexFim) {
-
-      const matchFim = textoConvertido.slice(posInicio).match(regexFim);
-
-      if (matchFim) posFim = posInicio + matchFim.index;
-
-    }
-
-    const secao = textoConvertido.slice(posInicio, posFim);
-
-    const numeros = secao.match(/\d+/g);
-
-    if (!numeros) return [];
-
-    return [...new Set(
-      numeros.map(n => parseInt(n)).filter(n => !isNaN(n))
-    )];
-
-  }
-
-  const resultado = {
-    cartas: [],
-    areasSistemicas: [],
-    areasDeAtuacao: [],
-    desativacoes: [],
-    ativacoes: []
-  };
-
-  /*
-  ------------------------------------------------
-  EXTRAÇÃO
-  ------------------------------------------------
-  */
-
-  resultado.cartas = extrairSecao(
-    "carta[s]?\\s+da\\s+consciencia|carta[s]?\\s*:",
-    "area[s]?\\s+sistemica"
-  );
-
-  resultado.areasSistemicas = extrairSecao(
-    "area[s]?\\s+sistemica",
-    "area[s]?\\s+de\\s+atuacao|atuacao"
-  );
-
-  resultado.areasDeAtuacao = extrairSecao(
-    "area[s]?\\s+de\\s+atuacao|atuacao",
-    "desativar|desativac"
-  );
-
-  resultado.desativacoes = extrairSecao(
-    "desativar|desativac",
-    "ativar|ativac"
-  );
-
-  resultado.ativacoes = extrairSecao(
-    "ativar|ativac",
-    null
-  );
-
-  /*
-  ------------------------------------------------
-  CAMPOS ÚNICOS
-  ------------------------------------------------
-  */
-
-  if (resultado.cartas.length > 0) {
-    resultado.cartas = [resultado.cartas[0]];
-  }
-
-  /*
-  NÃO limitamos mais áreas sistêmicas e de atuação
-  para permitir múltiplos valores.
-  */
-
-  console.log("✅ RESULTADO DO PARSE:", resultado);
-
-  return limparDuplicados(resultado);
-
 }
 
 /*
@@ -219,229 +52,160 @@ HANDLER
 ------------------------------------------------
 */
 
-export default async function handler(req,res){
+export default async function handler(req, res) {
 
-try{
+  try {
 
-let body={};
+    let body = {};
 
-/*
----------------------------------------------
-SUPORTE GET + POST
----------------------------------------------
-*/
+    if (req.method === "GET") {
 
-if(req.method==="GET"){
+      body = {
+        curso: req.query.curso,
+        dados: {
+          cartas: parseLista(req.query.cartas),
+          areasSistemicas: parseLista(req.query.areasSistemicas),
+          areasDeAtuacao: parseLista(req.query.areasDeAtuacao),
+          desativacoes: parseLista(req.query.desativacoes),
+          ativacoes: parseLista(req.query.ativacoes)
+        }
+      };
 
-body={
-curso:req.query.curso,
-dados:{
-cartas:parseLista(req.query.cartas),
-areasSistemicas:parseLista(req.query.areasSistemicas),
-areasDeAtuacao:parseLista(req.query.areasDeAtuacao),
-desativacoes:parseLista(req.query.desativacoes),
-ativacoes:parseLista(req.query.ativacoes)
-}
-};
+      if (req.query.texto) body.texto = req.query.texto;
 
-if(req.query.texto) body.texto=req.query.texto;
+    } else if (req.method === "POST") {
 
-}
+      body = req.body || {};
 
-else if(req.method==="POST"){
+    } else {
 
-body=req.body||{};
+      return res.status(405).json({
+        success: false,
+        erro: "Método não permitido"
+      });
 
-}
+    }
 
-else{
+    const cursoRaw = body.curso || "dam";
+    let dados = body.dados || body || {};
 
-return res.status(405).json({
-success:false,
-erro:"Método não permitido"
-});
+    dados = limparDuplicados(dados);
 
-}
+    const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
 
-const cursoRaw=body.curso||"dam";
-let dados=body.dados||body||{};
+    console.log("CURSO:", curso);
+    console.log("DADOS:", dados);
 
-/*
----------------------------------------------
-TEXTO LIVRE DAM
----------------------------------------------
-*/
-  
-if(cursoRaw==="dam"&&body.texto){
+    let paths;
+    let aggregator;
+    let resultado = {};
+    let mapaCategorias = {};
 
-//console.log("🔎 PARSING TEXTO DAM");
-//console.log("📝 TEXTO RECEBIDO:",body.texto);
+    switch (curso) {
 
-dados=parseRastreioDAM(body.texto);
+      case "bioanimal":
 
-}
+        paths = bioAnimalPaths;
+        aggregator = aggregateBioAnimal;
 
-dados=limparDuplicados(dados);
+        resultado = {
+          paresEmocionais: {},
+          reservatorios: {},
+          rastreioGeral: {},
+          sistemas: {}
+        };
 
-const curso=cursoRaw.toLowerCase().replace(/[-_]/g,"");
+        mapaCategorias = {
+          paresEmocionais: "paresEmocionais",
+          reservatorios: "reservatorios",
+          rastreioGeral: "rastreioGeral",
+          sistemas: "sistemas"
+        };
 
-console.log("CURSO:",curso);
-console.log("DADOS:",dados);
-console.log("📝 TEXTO RECEBIDO:",body.texto);
-  
-let paths;
-let aggregator;
-let resultado={};
-let mapaCategorias={};
+        break;
 
-switch(curso){
+      default:
+        return res.status(400).json({
+          success: false,
+          erro: "Curso inválido"
+        });
 
-case"dam":
+    }
 
-paths=damPaths;
-aggregator=aggregateDAM;
+    /*
+    ---------------------------------------------
+    FETCH PADRÃO
+    ---------------------------------------------
+    */
 
-resultado={
-cartas:{},
-areasSistemicas:{},
-areasDeAtuacao:{},
-desativacoes:{},
-ativacoes:{}
-};
+    async function carregar(categoria, numeros, resolver) {
 
-mapaCategorias={
-cartas:"cartas",
-areasSistemicas:"areasSistemicas",
-areasDeAtuacao:"areasDeAtuacao",
-desativacoes:"desativacoes",
-ativacoes:"ativacoes"
-};
+      if (!numeros || !Array.isArray(numeros)) return;
 
-break;
+      const tarefas = [...new Set(numeros)].map(async n => {
 
-case"espiritos":
-case"espiritosmiasmas":
+        const path = resolver(n);
+        if (!path) return;
 
-paths=espiritosPaths;
-aggregator=aggregateEspiritos;
+        console.log("🔎 BUSCANDO:", path);
 
-resultado={
-fechamentoPortais:{},
-cancelamentoPactos:{},
-liberacaoEspiritos:{},
-energiasDensas:{},
-associacaoEmocional:{},
-miasmas:{},
-mantras:{}
-};
+        try {
 
-mapaCategorias={
-portais:"fechamentoPortais",
-pactos:"cancelamentoPactos",
-espiritos:"liberacaoEspiritos",
-energias:"energiasDensas",
-associacoes:"associacaoEmocional",
-miasmas:"miasmas",
-mantras:"mantras"
-};
+          const conteudo = await fetchFromGitHub(path);
 
-break;
+          if (!resultado[categoria]) resultado[categoria] = {};
 
-case"biohumano":
+          resultado[categoria][n] = conteudo;
 
-paths=bioHumanoPaths;
-aggregator=aggregateBioHumano;
+        } catch {
 
-resultado={
-paresEmocionais:{},
-reservatorios:{},
-rastreioGeral:{},
-protocolos:{},
-sistemas:{}
-};
+          console.log("Erro ao buscar:", path);
 
-mapaCategorias={
-paresEmocionais:"paresEmocionais",
-reservatorios:"reservatorios",
-rastreioGeral:"rastreioGeral",
-protocolos:"protocolos"
-};
+        }
 
-break;
+      });
 
-case"bioanimal":
+      await Promise.all(tarefas);
+    }
 
-paths=bioAnimalPaths;
-aggregator=aggregateBioAnimal;
+    /*
+    ---------------------------------------------
+    EXECUÇÃO PADRÃO
+    ---------------------------------------------
+    */
 
-resultado={
-paresEmocionais:{},
-reservatorios:{},
-rastreioGeral:{},
-sistemas:{}
-};
+    const tarefas = [];
 
-mapaCategorias={
-paresEmocionais:"paresEmocionais",
-reservatorios:"reservatorios",
-rastreioGeral:"rastreioGeral"
-};
+    for (const categoriaRecebida in dados) {
 
-break;
+      const categoriaInterna = mapaCategorias[categoriaRecebida];
+      if (!categoriaInterna) continue;
 
-default:
+      const resolver = paths[categoriaInterna];
 
-return res.status(400).json({
-success:false,
-erro:"Curso inválido"
-});
+      if (typeof resolver === "function") {
 
-}
+        tarefas.push(
+          carregar(
+            categoriaInterna,
+            dados[categoriaRecebida],
+            resolver
+          )
+        );
 
-/*
----------------------------------------------
-FETCH PARALELO
----------------------------------------------
-*/
+      }
 
-async function carregar(categoria,numeros,resolver){
+    }
 
-if(!numeros||!Array.isArray(numeros))return;
+    await Promise.all(tarefas);
 
-const tarefas=[...new Set(numeros)].map(async n=>{
+    /*
+    ---------------------------------------------
+    AJUSTE BIO ANIMAL — SISTEMAS E PARES
+    ---------------------------------------------
+    */
 
-const path=resolver(n);
-if(!path)return;
-
-try{
-
-const conteudo=await fetchFromGitHub(path);
-
-if(!resultado[categoria])resultado[categoria]={};
-
-resultado[categoria][n]=conteudo;
-
-}catch{
-
-console.log("Erro ao buscar:",path);
-
-}
-
-});
-
-await Promise.all(tarefas);
-
-/*
----------------------------------------------
-AJUSTE BIO ANIMAL — SISTEMAS E PARES
----------------------------------------------
-*/
-
-if (curso === "bioanimal") {
-
-  // 🔁 transformar sistemas de string → objeto estruturado
-  if (resultado.sistemas) {
-
+    // estrutura correta de sistemas
     for (const sistema in resultado.sistemas) {
 
       const texto = resultado.sistemas[sistema];
@@ -453,129 +217,64 @@ if (curso === "bioanimal") {
 
     }
 
-  }
+    // pares de sistema
+    if (dados.paresSistema?.length) {
 
-  // 🔁 carregar pares de sistema manualmente
-  if (dados.paresSistema?.length) {
+      const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
 
-    const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
+        const path = paths.paresSistema(sistema, par);
 
-      const path = paths.paresSistema(sistema, par);
+        console.log("🔎 BUSCANDO:", path);
 
-      console.log("🔎 BUSCANDO:", path);
+        try {
 
-      try {
+          const conteudo = await fetchFromGitHub(path);
 
-        const conteudo = await fetchFromGitHub(path);
+          if (!resultado.sistemas[sistema]) {
+            resultado.sistemas[sistema] = {
+              texto: "",
+              pares: {}
+            };
+          }
 
-        if (!resultado.sistemas[sistema]) {
-          resultado.sistemas[sistema] = {
-            texto: "",
-            pares: {}
-          };
+          resultado.sistemas[sistema].pares[par] = conteudo;
+
+        } catch {
+
+          console.log("Erro ao buscar par sistema:", path);
+
         }
 
-        resultado.sistemas[sistema].pares[par] = conteudo;
+      });
 
-      } catch {
+      await Promise.all(tarefasPares);
 
-        console.log("Erro ao buscar par sistema:", path);
+    }
 
-      }
+    /*
+    ---------------------------------------------
+    AGGREGAÇÃO
+    ---------------------------------------------
+    */
 
+    const blocos = aggregator(resultado);
+
+    return res.status(200).json({
+      success: true,
+      curso: cursoRaw,
+      resultado: Array.isArray(blocos) ? blocos : [blocos]
     });
 
-    await Promise.all(tarefasPares);
+  } catch (erro) {
+
+    console.error("Erro rastreio:", erro);
+
+    return res.status(500).json({
+      success: false,
+      erro: "Erro interno",
+      detalhes: erro.message
+    });
 
   }
-
-}
-  
-}
-
-/*
----------------------------------------------
-EXECUÇÃO
----------------------------------------------
-*/
-
-const tarefas=[];
-
-for(const categoriaRecebida in dados){
-
-const categoriaInterna=mapaCategorias[categoriaRecebida];
-if(!categoriaInterna)continue;
-
-const resolver=paths[categoriaInterna];
-
-if(typeof resolver==="function"){
-
-tarefas.push(
-carregar(
-categoriaInterna,
-dados[categoriaRecebida],
-resolver
-)
-);
-
-}
-
-}
-
-await Promise.all(tarefas);
-
-/*
----------------------------------------------
-MANTRAS
----------------------------------------------
-*/
-
-const [mantraAtivacao,mantraDesativacao]=await Promise.all([
-
-paths.mantraAtivacao
-?fetchFromGitHub(paths.mantraAtivacao)
-:"",
-
-paths.mantraDesativacao
-?fetchFromGitHub(paths.mantraDesativacao)
-:""
-
-]);
-
-/*
----------------------------------------------
-AGREGAÇÃO
----------------------------------------------
-*/
-
-const blocos=aggregator(
-resultado,
-mantraAtivacao,
-mantraDesativacao
-);
-
-const resultadoBlocos=Array.isArray(blocos)
-?blocos
-:[blocos];
-
-return res.status(200).json({
-success:true,
-curso:cursoRaw,
-resultado:resultadoBlocos
-});
-
-}
-
-catch(erro){
-
-console.error("Erro rastreio:",erro);
-
-return res.status(500).json({
-success:false,
-erro:"Erro interno",
-detalhes:erro.message
-});
-
-}
 
 }
