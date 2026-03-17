@@ -431,6 +431,66 @@ console.log("Erro ao buscar:",path);
 
 await Promise.all(tarefas);
 
+/*
+---------------------------------------------
+AJUSTE BIO ANIMAL — SISTEMAS E PARES
+---------------------------------------------
+*/
+
+if (curso === "bioanimal") {
+
+  // 🔁 transformar sistemas de string → objeto estruturado
+  if (resultado.sistemas) {
+
+    for (const sistema in resultado.sistemas) {
+
+      const texto = resultado.sistemas[sistema];
+
+      resultado.sistemas[sistema] = {
+        texto,
+        pares: {}
+      };
+
+    }
+
+  }
+
+  // 🔁 carregar pares de sistema manualmente
+  if (dados.paresSistema?.length) {
+
+    const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
+
+      const path = paths.paresSistema(sistema, par);
+
+      console.log("🔎 BUSCANDO:", path);
+
+      try {
+
+        const conteudo = await fetchFromGitHub(path);
+
+        if (!resultado.sistemas[sistema]) {
+          resultado.sistemas[sistema] = {
+            texto: "",
+            pares: {}
+          };
+        }
+
+        resultado.sistemas[sistema].pares[par] = conteudo;
+
+      } catch {
+
+        console.log("Erro ao buscar par sistema:", path);
+
+      }
+
+    });
+
+    await Promise.all(tarefasPares);
+
+  }
+
+}
+  
 }
 
 /*
