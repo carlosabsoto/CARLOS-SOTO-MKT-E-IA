@@ -9,7 +9,6 @@ function dividirEmBlocos(texto = "", tamanho = 12000) {
   }
 
   return partes
-
 }
 
 
@@ -91,7 +90,7 @@ export function aggregateBioAnimal(resultado = {}) {
 
   /*
   -------------------------
-  SISTEMAS + PARES
+  SISTEMAS
   -------------------------
   */
 
@@ -100,32 +99,34 @@ export function aggregateBioAnimal(resultado = {}) {
   const sistemasOrdenados = Object.keys(sistemas)
     .sort((a, b) => Number(a) - Number(b))
 
-  for (const sistema of sistemasOrdenados) {
+  if (sistemasOrdenados.length) {
 
-    const dadosSistema = sistemas[sistema]
-    if (!dadosSistema) continue
+    conteudo += "Sistemas\n\n"
 
-    // Título do sistema
-    conteudo += `Sistema ${sistema}\n\n`
+    for (const sistema of sistemasOrdenados) {
 
-    // Texto do sistema
-    if (dadosSistema.texto && dadosSistema.texto.trim()) {
-      conteudo += dadosSistema.texto.trim() + "\n\n"
-    }
+      const dadosSistema = sistemas[sistema]
+      if (!dadosSistema) continue
 
-    // Pares do sistema
-    const pares = dadosSistema.pares || {}
+      // 🔹 Conteúdo do sistema (SEM adicionar título)
+      if (dadosSistema.texto && dadosSistema.texto.trim()) {
+        conteudo += dadosSistema.texto.trim() + "\n\n"
+      }
 
-    const paresOrdenados = Object.keys(pares)
-      .sort((a, b) => Number(a) - Number(b))
+      // 🔹 Pares do sistema (SEM adicionar título)
+      const pares = dadosSistema.pares || {}
 
-    for (const parId of paresOrdenados) {
+      const paresOrdenados = Object.keys(pares)
+        .sort((a, b) => Number(a) - Number(b))
 
-      const parTexto = pares[parId]
+      for (const parId of paresOrdenados) {
 
-      if (parTexto && parTexto.trim()) {
-        conteudo += `Par ${parId}\n\n`
-        conteudo += parTexto.trim() + "\n\n"
+        const parTexto = pares[parId]
+
+        if (parTexto && parTexto.trim()) {
+          conteudo += parTexto.trim() + "\n\n"
+        }
+
       }
 
     }
