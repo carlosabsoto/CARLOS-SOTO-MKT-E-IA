@@ -1,8 +1,14 @@
 const BASE_URL = "https://ias-ser-magnetico.vercel.app/api/rastreio";
 
-async function testar(url) {
+async function testar(body) {
   try {
-    const res = await fetch(url);
+
+    const res = await fetch(BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
     const data = await res.json();
 
     return res.status === 200 &&
