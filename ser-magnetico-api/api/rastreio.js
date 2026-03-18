@@ -31,12 +31,6 @@ function parseLista(valor) {
   )];
 }
 
-/*
-------------------------------------------------
-REMOVER DUPLICADOS
-------------------------------------------------
-*/
-
 function limparDuplicados(dados = {}) {
   for (const chave in dados) {
     if (Array.isArray(dados[chave])) {
@@ -101,7 +95,93 @@ export default async function handler(req, res) {
     let resultado = {};
     let mapaCategorias = {};
 
+    /*
+    ---------------------------------------------
+    SWITCH DE CURSOS (CORRIGIDO)
+    ---------------------------------------------
+    */
+
     switch (curso) {
+
+      case "dam":
+
+        paths = damPaths;
+        aggregator = aggregateDAM;
+
+        resultado = {
+          cartas: {},
+          areasSistemicas: {},
+          areasDeAtuacao: {},
+          desativacoes: {},
+          ativacoes: {}
+        };
+
+        mapaCategorias = {
+          cartas: "cartas",
+          areasSistemicas: "areasSistemicas",
+          areasDeAtuacao: "areasDeAtuacao",
+          desativacoes: "desativacoes",
+          ativacoes: "ativacoes"
+        };
+
+      break;
+
+
+
+      case "espiritos":
+      case "espiritosmiasmas":
+
+        paths = espiritosPaths;
+        aggregator = aggregateEspiritos;
+
+        resultado = {
+          fechamentoPortais: {},
+          cancelamentoPactos: {},
+          liberacaoEspiritos: {},
+          energiasDensas: {},
+          associacaoEmocional: {},
+          miasmas: {},
+          mantras: {}
+        };
+
+        mapaCategorias = {
+          portais: "fechamentoPortais",
+          pactos: "cancelamentoPactos",
+          espiritos: "liberacaoEspiritos",
+          energias: "energiasDensas",
+          associacoes: "associacaoEmocional",
+          miasmas: "miasmas",
+          mantras: "mantras"
+        };
+
+      break;
+
+
+
+      case "biohumano":
+
+        paths = bioHumanoPaths;
+        aggregator = aggregateBioHumano;
+
+        resultado = {
+          paresEmocionais: {},
+          reservatorios: {},
+          rastreioGeral: {},
+          protocolos: {},
+          sistemas: {}
+        };
+
+        mapaCategorias = {
+          paresEmocionais: "paresEmocionais",
+          reservatorios: "reservatorios",
+          rastreioGeral: "rastreioGeral",
+          protocolos: "protocolos",
+          sistemas: "sistemas"
+        };
+
+      break;
+
+
 
       case "bioanimal":
 
@@ -122,9 +202,12 @@ export default async function handler(req, res) {
           sistemas: "sistemas"
         };
 
-        break;
+      break;
+
+
 
       default:
+
         return res.status(400).json({
           success: false,
           erro: "Curso inválido"
@@ -201,53 +284,57 @@ export default async function handler(req, res) {
 
     /*
     ---------------------------------------------
-    AJUSTE BIO ANIMAL — SISTEMAS E PARES
+    AJUSTE ESPECIAL BIO ANIMAL
     ---------------------------------------------
     */
 
-    // estrutura correta de sistemas
-    for (const sistema in resultado.sistemas) {
+    if (curso === "bioanimal") {
 
-      const texto = resultado.sistemas[sistema];
+      // converter sistemas para estrutura correta
+      for (const sistema in resultado.sistemas) {
 
-      resultado.sistemas[sistema] = {
-        texto,
-        pares: {}
-      };
+        const texto = resultado.sistemas[sistema];
 
-    }
+        resultado.sistemas[sistema] = {
+          texto,
+          pares: {}
+        };
 
-    // pares de sistema
-    if (dados.paresSistema?.length) {
+      }
 
-      const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
+      // carregar pares de sistema
+      if (dados.paresSistema?.length) {
 
-        const path = paths.paresSistema(sistema, par);
+        const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
 
-        console.log("🔎 BUSCANDO:", path);
+          const path = paths.paresSistema(sistema, par);
 
-        try {
+          console.log("🔎 BUSCANDO:", path);
 
-          const conteudo = await fetchFromGitHub(path);
+          try {
 
-          if (!resultado.sistemas[sistema]) {
-            resultado.sistemas[sistema] = {
-              texto: "",
-              pares: {}
-            };
+            const conteudo = await fetchFromGitHub(path);
+
+            if (!resultado.sistemas[sistema]) {
+              resultado.sistemas[sistema] = {
+                texto: "",
+                pares: {}
+              };
+            }
+
+            resultado.sistemas[sistema].pares[par] = conteudo;
+
+          } catch {
+
+            console.log("Erro ao buscar par sistema:", path);
+
           }
 
-          resultado.sistemas[sistema].pares[par] = conteudo;
+        });
 
-        } catch {
+        await Promise.all(tarefasPares);
 
-          console.log("Erro ao buscar par sistema:", path);
-
-        }
-
-      });
-
-      await Promise.all(tarefasPares);
+      }
 
     }
 
