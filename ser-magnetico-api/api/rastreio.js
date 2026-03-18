@@ -42,6 +42,41 @@ function limparDuplicados(dados = {}) {
 
 /*
 ------------------------------------------------
+PARSER DAM (RESTAURADO)
+------------------------------------------------
+*/
+
+function parseRastreioDAM(texto = "") {
+
+  const lower = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+  function extrairNumeros(regex) {
+    const match = lower.match(regex);
+    if (!match) return [];
+    return [...new Set(
+      match[1]
+        .split(",")
+        .map(n => Number(n.trim()))
+        .filter(n => !isNaN(n))
+    )];
+  }
+
+  return {
+    cartas: extrairNumeros(/cartas?\s*:\s*([0-9,]+)/),
+    areasSistemicas: extrairNumeros(/areas?sistemicas?\s*:\s*([0-9,]+)/),
+    areasDeAtuacao: extrairNumeros(/areas?deatuacao\s*:\s*([0-9,]+)/),
+    desativacoes: extrairNumeros(/desativacoes\s*:\s*([0-9,]+)/),
+    ativacoes: extrairNumeros(/ativacoes\s*:\s*([0-9,]+)/)
+  };
+
+}
+
+/*
+------------------------------------------------
 HANDLER
 ------------------------------------------------
 */
@@ -51,6 +86,12 @@ export default async function handler(req, res) {
   try {
 
     let body = {};
+
+    /*
+    ---------------------------------------------
+    GET / POST
+    ---------------------------------------------
+    */
 
     if (req.method === "GET") {
 
@@ -83,6 +124,21 @@ export default async function handler(req, res) {
     const cursoRaw = body.curso || "dam";
     let dados = body.dados || body || {};
 
+    /*
+    ---------------------------------------------
+    PARSER TEXTO (DAM)
+    ---------------------------------------------
+    */
+
+    if (cursoRaw === "dam" && body.texto) {
+
+      console.log("🔎 PARSING TEXTO DAM");
+      console.log("📝 TEXTO RECEBIDO:", body.texto);
+
+      dados = parseRastreioDAM(body.texto);
+
+    }
+
     dados = limparDuplicados(dados);
 
     const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
@@ -97,7 +153,7 @@ export default async function handler(req, res) {
 
     /*
     ---------------------------------------------
-    SWITCH DE CURSOS (CORRIGIDO)
+    SWITCH DE CURSOS
     ---------------------------------------------
     */
 
@@ -284,13 +340,12 @@ export default async function handler(req, res) {
 
     /*
     ---------------------------------------------
-    AJUSTE ESPECIAL BIO ANIMAL
+    AJUSTE SISTEMAS (BIO HUMANO + ANIMAL)
     ---------------------------------------------
     */
 
-    if (curso === "bioanimal") {
+    if (curso === "bioanimal" || curso === "biohumano") {
 
-      // converter sistemas para estrutura correta
       for (const sistema in resultado.sistemas) {
 
         const texto = resultado.sistemas[sistema];
@@ -302,7 +357,6 @@ export default async function handler(req, res) {
 
       }
 
-      // carregar pares de sistema
       if (dados.paresSistema?.length) {
 
         const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
