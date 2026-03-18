@@ -27,13 +27,30 @@ export default async function handler(req, res) {
 
   const [dam, espiritos, bioHumano, bioAnimal] = await Promise.all([
 
-    testar(`${BASE_URL}?curso=dam&texto=cartas:7 areasSistemicas:3`),
+    testar({
+      curso: "dam",
+      texto: "cartas:7 areasSistemicas:3 desativacoes:55 ativacoes:1"
+    }),
 
-    testar(`${BASE_URL}?curso=espiritos&portais=1&pactos=2`),
+    testar({
+      curso: "espiritos",
+      dados: { portais: [1], pactos: [2] }
+    }),
 
-    testar(`${BASE_URL}?curso=biohumano&paresEmocionais=32`),
+    testar({
+      curso: "biohumano",
+      dados: { paresEmocionais: [32], reservatorios: [11] }
+    }),
 
-    testar(`${BASE_URL}?curso=bioanimal&sistemas=4&paresSistema[0][sistema]=4&paresSistema[0][par]=10`)
+    testar({
+      curso: "bioanimal",
+      dados: {
+        paresEmocionais: [32],
+        reservatorios: [11],
+        sistemas: [4],
+        paresSistema: [{ sistema: 4, par: 10 }]
+      }
+    })
 
   ]);
 
