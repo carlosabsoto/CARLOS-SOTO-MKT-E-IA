@@ -42,7 +42,7 @@ function limparDuplicados(dados = {}) {
 
 /*
 ------------------------------------------------
-PARSER DAM (RESTAURADO)
+PARSER DAM (CORRIGIDO - SEM COLISÃO DE CAMPOS)
 ------------------------------------------------
 */
 
@@ -54,9 +54,17 @@ function parseRastreioDAM(texto = "") {
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
-  function extrairNumeros(regex) {
+  function extrairNumerosCampo(campo) {
+
+    const regex = new RegExp(
+      `(?:^|\\s)${campo}\\s*:\\s*([0-9,\\s]+)(?=\\s+[a-zA-Z]+\\s*:|$)`,
+      "i"
+    );
+
     const match = lower.match(regex);
+
     if (!match) return [];
+
     return [...new Set(
       match[1]
         .split(",")
@@ -66,11 +74,11 @@ function parseRastreioDAM(texto = "") {
   }
 
   return {
-    cartas: extrairNumeros(/cartas?\s*:\s*([0-9,]+)/),
-    areasSistemicas: extrairNumeros(/areas?sistemicas?\s*:\s*([0-9,]+)/),
-    areasDeAtuacao: extrairNumeros(/areas?deatuacao\s*:\s*([0-9,]+)/),
-    desativacoes: extrairNumeros(/desativacoes\s*:\s*([0-9,]+)/),
-    ativacoes: extrairNumeros(/ativacoes\s*:\s*([0-9,]+)/)
+    cartas: extrairNumerosCampo("cartas?"),
+    areasSistemicas: extrairNumerosCampo("areas?sistemicas?"),
+    areasDeAtuacao: extrairNumerosCampo("areas?deatuacao"),
+    desativacoes: extrairNumerosCampo("desativacoes"),
+    ativacoes: extrairNumerosCampo("ativacoes")
   };
 
 }
@@ -182,8 +190,6 @@ export default async function handler(req, res) {
 
       break;
 
-
-
       case "espiritos":
       case "espiritosmiasmas":
 
@@ -212,8 +218,6 @@ export default async function handler(req, res) {
 
       break;
 
-
-
       case "biohumano":
 
         paths = bioHumanoPaths;
@@ -237,8 +241,6 @@ export default async function handler(req, res) {
 
       break;
 
-
-
       case "bioanimal":
 
         paths = bioAnimalPaths;
@@ -259,8 +261,6 @@ export default async function handler(req, res) {
         };
 
       break;
-
-
 
       default:
 
