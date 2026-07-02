@@ -344,18 +344,41 @@ export default async function handler(req, res) {
     ---------------------------------------------
     */
 
+    if (!dados.sistemas || dados.sistemas.length === 0) {
+
+    dados.sistemas = [
+    ...new Set(
+      (dados.paresSistema || []).map(item => item.sistema)
+    )
+    ];
+   }
+    
     if (curso === "bioanimal" || curso === "biohumano") {
 
-      for (const sistema in resultado.sistemas) {
+for (const sistema of dados.sistemas) {
 
-        const texto = resultado.sistemas[sistema];
+  if (resultado.sistemas[sistema]) continue;
 
-        resultado.sistemas[sistema] = {
-          texto,
-          pares: {}
-        };
+  const path = paths.sistemas(sistema);
 
-      }
+  console.log("🔎 BUSCANDO:", path);
+
+  try {
+
+    const conteudo = await fetchFromGitHub(path);
+
+    resultado.sistemas[sistema] = {
+      texto: conteudo,
+      pares: {}
+    };
+
+  } catch {
+
+    console.log("Erro sistema:", path);
+
+  }
+
+}
 
       if (dados.paresSistema?.length) {
 
