@@ -1,14 +1,14 @@
 {
   "builds": [
     {
-      "src": "api/**/*.js",
+      "src": "api/rastreio.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "src": "/api/rastreio",
+      "dest": "/api/rastreio.js"
     }
   ]
 }
