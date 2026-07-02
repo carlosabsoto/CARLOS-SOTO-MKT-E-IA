@@ -9,6 +9,11 @@
     {
       "src": "/api/rastreio",
       "dest": "/api/rastreio.js"
+    },
+    {
+      "src": "/",
+      "status": 301,
+      "headers": { "Location": "/api/rastreio" }
     }
   ]
 }
