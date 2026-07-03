@@ -422,6 +422,11 @@ for (const sistema of dados.sistemas) {
               };
             }
 
+  console.log(
+  "ANTES:",
+  JSON.stringify(resultado.sistemas[sistema], null, 2)
+);
+            
             resultado.sistemas[sistema].pares[par] = conteudo;
 
           } catch {
