@@ -308,6 +308,29 @@ export default async function handler(req, res) {
     }
 
     /*
+---------------------------------------------
+DERIVA SISTEMAS DOS PARES
+(BIO HUMANO E BIO ANIMAL)
+---------------------------------------------
+*/
+
+if (
+  (curso === "biohumano" || curso === "bioanimal") &&
+  (!dados.sistemas || dados.sistemas.length === 0) &&
+  Array.isArray(dados.paresSistema)
+) {
+
+  dados.sistemas = [
+    ...new Set(
+      dados.paresSistema.map(item => Number(item.sistema))
+    )
+  ].sort((a, b) => a - b);
+
+  console.log("SISTEMAS DERIVADOS:", dados.sistemas);
+
+}
+    
+    /*
     ---------------------------------------------
     EXECUÇÃO PADRÃO
     ---------------------------------------------
