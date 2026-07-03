@@ -421,6 +421,11 @@ for (const sistema of dados.sistemas) {
     ---------------------------------------------
     */
 
+    console.log(
+  "RESULTADO SISTEMAS:",
+  JSON.stringify(resultado.sistemas, null, 2)
+);
+    
     const blocos = aggregator(resultado);
 
     return res.status(200).json({
