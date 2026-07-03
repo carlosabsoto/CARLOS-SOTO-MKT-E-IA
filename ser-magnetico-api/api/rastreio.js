@@ -308,29 +308,6 @@ export default async function handler(req, res) {
     }
 
     /*
----------------------------------------------
-DERIVA SISTEMAS DOS PARES
-(BIO HUMANO E BIO ANIMAL)
----------------------------------------------
-*/
-
-if (
-  (curso === "biohumano" || curso === "bioanimal") &&
-  (!dados.sistemas || dados.sistemas.length === 0) &&
-  Array.isArray(dados.paresSistema)
-) {
-
-  dados.sistemas = [
-    ...new Set(
-      dados.paresSistema.map(item => Number(item.sistema))
-    )
-  ].sort((a, b) => a - b);
-
-  console.log("SISTEMAS DERIVADOS:", dados.sistemas);
-
-}
-    
-    /*
     ---------------------------------------------
     EXECUÇÃO PADRÃO
     ---------------------------------------------
@@ -367,41 +344,18 @@ if (
     ---------------------------------------------
     */
 
-    if (!dados.sistemas || dados.sistemas.length === 0) {
-
-    dados.sistemas = [
-    ...new Set(
-      (dados.paresSistema || []).map(item => item.sistema)
-    )
-    ];
-   }
-    
     if (curso === "bioanimal" || curso === "biohumano") {
 
-for (const sistema of dados.sistemas) {
+      for (const sistema in resultado.sistemas) {
 
-  if (resultado.sistemas[sistema]) continue;
+        const texto = resultado.sistemas[sistema];
 
-  const path = paths.sistemas(sistema);
+        resultado.sistemas[sistema] = {
+          texto,
+          pares: {}
+        };
 
-  console.log("🔎 BUSCANDO:", path);
-
-  try {
-
-    const conteudo = await fetchFromGitHub(path);
-
-    resultado.sistemas[sistema] = {
-      texto: conteudo,
-      pares: {}
-    };
-
-  } catch {
-
-    console.log("Erro sistema:", path);
-
-  }
-
-}
+      }
 
       if (dados.paresSistema?.length) {
 
@@ -422,11 +376,6 @@ for (const sistema of dados.sistemas) {
               };
             }
 
-  console.log(
-  "ANTES:",
-  JSON.stringify(resultado.sistemas[sistema], null, 2)
-);
-            
             resultado.sistemas[sistema].pares[par] = conteudo;
 
           } catch {
@@ -449,11 +398,6 @@ for (const sistema of dados.sistemas) {
     ---------------------------------------------
     */
 
-    console.log(
-  "RESULTADO SISTEMAS:",
-  JSON.stringify(resultado.sistemas, null, 2)
-);
-    
     const blocos = aggregator(resultado);
 
     return res.status(200).json({
