@@ -20,15 +20,17 @@ function parseLista(valor) {
   if (!valor) return [];
 
   if (Array.isArray(valor)) {
-    return [...new Set(valor.map(Number))];
+    return [...new Set(valor.map(Number).filter(v => !isNaN(v)))];
   }
 
-  return [...new Set(
-    String(valor)
-      .split(",")
-      .map(v => Number(v.trim()))
-      .filter(v => !isNaN(v))
-  )];
+  return [
+    ...new Set(
+      String(valor)
+        .split(",")
+        .map(v => Number(v.trim()))
+        .filter(v => !isNaN(v))
+    )
+  ];
 }
 
 function limparDuplicados(dados = {}) {
@@ -37,17 +39,36 @@ function limparDuplicados(dados = {}) {
       dados[chave] = [...new Set(dados[chave])];
     }
   }
+
   return dados;
+}
+
+function normalizarCurso(cursoRaw = "") {
+  return String(cursoRaw || "dam")
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_\s]/g, "");
+}
+
+function cursoResposta(cursoNormalizado, cursoRaw) {
+  if (cursoNormalizado === "bioanimal") return "bio-animal";
+  if (cursoNormalizado === "biohumano") return "bio-humano";
+  if (cursoNormalizado === "espiritos" || cursoNormalizado === "espiritosmiasmas") {
+    return "espiritos-miasmas";
+  }
+
+  return cursoRaw || "dam";
 }
 
 /*
 ------------------------------------------------
-PARSER DAM (CORRIGIDO - SEM COLISÃO DE CAMPOS)
+PARSER DAM
 ------------------------------------------------
 */
 
 function parseRastreioDAM(texto = "") {
-
   const lower = texto
     .toLowerCase()
     .normalize("NFD")
@@ -55,7 +76,6 @@ function parseRastreioDAM(texto = "") {
     .trim();
 
   function extrairNumerosCampo(campo) {
-
     const regex = new RegExp(
       `(?:^|\\s)${campo}\\s*:\\s*([0-9,\\s]+)(?=\\s+[a-zA-Z]+\\s*:|$)`,
       "i"
@@ -65,12 +85,14 @@ function parseRastreioDAM(texto = "") {
 
     if (!match) return [];
 
-    return [...new Set(
-      match[1]
-        .split(",")
-        .map(n => Number(n.trim()))
-        .filter(n => !isNaN(n))
-    )];
+    return [
+      ...new Set(
+        match[1]
+          .split(",")
+          .map(n => Number(n.trim()))
+          .filter(n => !isNaN(n))
+      )
+    ];
   }
 
   return {
@@ -80,7 +102,6 @@ function parseRastreioDAM(texto = "") {
     desativacoes: extrairNumerosCampo("desativacoes"),
     ativacoes: extrairNumerosCampo("ativacoes")
   };
-
 }
 
 /*
@@ -90,9 +111,9 @@ HANDLER
 */
 
 export default async function handler(req, res) {
+  let cursoRaw = "dam";
 
   try {
-
     let body = {};
 
     /*
@@ -102,7 +123,6 @@ export default async function handler(req, res) {
     */
 
     if (req.method === "GET") {
-
       body = {
         curso: req.query.curso,
         dados: {
@@ -115,41 +135,43 @@ export default async function handler(req, res) {
       };
 
       if (req.query.texto) body.texto = req.query.texto;
-
     } else if (req.method === "POST") {
-
       body = req.body || {};
-
     } else {
-
       return res.status(405).json({
         success: false,
-        erro: "Método não permitido"
+        curso: null,
+        resultado: [],
+        erro: "Método não permitido",
+        retry: false
       });
-
     }
 
-    const cursoRaw = body.curso || "dam";
+    cursoRaw = body.curso || "dam";
     let dados = body.dados || body || {};
 
     /*
     ---------------------------------------------
-    PARSER TEXTO (DAM)
+    NORMALIZAÇÃO DO CURSO
     ---------------------------------------------
     */
 
-    if (cursoRaw === "dam" && body.texto) {
+    const curso = normalizarCurso(cursoRaw);
 
+    /*
+    ---------------------------------------------
+    PARSER TEXTO DAM
+    ---------------------------------------------
+    */
+
+    if (curso === "dam" && body.texto) {
       console.log("🔎 PARSING TEXTO DAM");
       console.log("📝 TEXTO RECEBIDO:", body.texto);
 
       dados = parseRastreioDAM(body.texto);
-
     }
 
     dados = limparDuplicados(dados);
-
-    const curso = cursoRaw.toLowerCase().replace(/[-_]/g, "");
 
     console.log("CURSO:", curso);
     console.log("DADOS:", dados);
@@ -166,9 +188,7 @@ export default async function handler(req, res) {
     */
 
     switch (curso) {
-
       case "dam":
-
         paths = damPaths;
         aggregator = aggregateDAM;
 
@@ -188,11 +208,10 @@ export default async function handler(req, res) {
           ativacoes: "ativacoes"
         };
 
-      break;
+        break;
 
       case "espiritos":
       case "espiritosmiasmas":
-
         paths = espiritosPaths;
         aggregator = aggregateEspiritos;
 
@@ -216,10 +235,9 @@ export default async function handler(req, res) {
           mantras: "mantras"
         };
 
-      break;
+        break;
 
       case "biohumano":
-
         paths = bioHumanoPaths;
         aggregator = aggregateBioHumano;
 
@@ -239,10 +257,9 @@ export default async function handler(req, res) {
           sistemas: "sistemas"
         };
 
-      break;
+        break;
 
       case "bioanimal":
-
         paths = bioAnimalPaths;
         aggregator = aggregateBioAnimal;
 
@@ -250,6 +267,7 @@ export default async function handler(req, res) {
           paresEmocionais: {},
           reservatorios: {},
           rastreioGeral: {},
+          protocolos: {},
           sistemas: {}
         };
 
@@ -257,18 +275,20 @@ export default async function handler(req, res) {
           paresEmocionais: "paresEmocionais",
           reservatorios: "reservatorios",
           rastreioGeral: "rastreioGeral",
+          protocolos: "protocolos",
           sistemas: "sistemas"
         };
 
-      break;
+        break;
 
       default:
-
         return res.status(400).json({
           success: false,
-          erro: "Curso inválido"
+          curso: cursoRaw,
+          resultado: [],
+          erro: "Curso inválido",
+          retry: false
         });
-
     }
 
     /*
@@ -278,30 +298,23 @@ export default async function handler(req, res) {
     */
 
     async function carregar(categoria, numeros, resolver) {
-
       if (!numeros || !Array.isArray(numeros)) return;
 
       const tarefas = [...new Set(numeros)].map(async n => {
-
         const path = resolver(n);
         if (!path) return;
 
         console.log("🔎 BUSCANDO:", path);
 
         try {
-
           const conteudo = await fetchFromGitHub(path);
 
           if (!resultado[categoria]) resultado[categoria] = {};
 
           resultado[categoria][n] = conteudo;
-
-        } catch {
-
-          console.log("Erro ao buscar:", path);
-
+        } catch (erro) {
+          console.log("Erro ao buscar:", path, erro.message);
         }
-
       });
 
       await Promise.all(tarefas);
@@ -316,14 +329,12 @@ export default async function handler(req, res) {
     const tarefas = [];
 
     for (const categoriaRecebida in dados) {
-
       const categoriaInterna = mapaCategorias[categoriaRecebida];
       if (!categoriaInterna) continue;
 
       const resolver = paths[categoriaInterna];
 
       if (typeof resolver === "function") {
-
         tarefas.push(
           carregar(
             categoriaInterna,
@@ -331,42 +342,36 @@ export default async function handler(req, res) {
             resolver
           )
         );
-
       }
-
     }
 
     await Promise.all(tarefas);
 
     /*
     ---------------------------------------------
-    AJUSTE SISTEMAS (BIO HUMANO + ANIMAL)
+    AJUSTE SISTEMAS — BIO HUMANO + BIO ANIMAL
     ---------------------------------------------
     */
 
     if (curso === "bioanimal" || curso === "biohumano") {
-
       for (const sistema in resultado.sistemas) {
-
         const texto = resultado.sistemas[sistema];
 
         resultado.sistemas[sistema] = {
           texto,
           pares: {}
         };
-
       }
 
-      if (dados.paresSistema?.length) {
-
+      if (Array.isArray(dados.paresSistema) && dados.paresSistema.length) {
         const tarefasPares = dados.paresSistema.map(async ({ sistema, par }) => {
+          if (!sistema || !par) return;
 
           const path = paths.paresSistema(sistema, par);
 
           console.log("🔎 BUSCANDO:", path);
 
           try {
-
             const conteudo = await fetchFromGitHub(path);
 
             if (!resultado.sistemas[sistema]) {
@@ -377,19 +382,13 @@ export default async function handler(req, res) {
             }
 
             resultado.sistemas[sistema].pares[par] = conteudo;
-
-          } catch {
-
-            console.log("Erro ao buscar par sistema:", path);
-
+          } catch (erro) {
+            console.log("Erro ao buscar par sistema:", path, erro.message);
           }
-
         });
 
         await Promise.all(tarefasPares);
-
       }
-
     }
 
     /*
@@ -400,22 +399,47 @@ export default async function handler(req, res) {
 
     const blocos = aggregator(resultado);
 
+    const resultadoFinal = Array.isArray(blocos)
+      ? blocos.filter(b => typeof b === "string" && b.trim())
+      : [];
+
+    console.log("✅ RESPOSTA FINAL:", {
+      success: resultadoFinal.length > 0,
+      cursoOriginal: cursoRaw,
+      cursoNormalizado: curso,
+      cursoResposta: cursoResposta(curso, cursoRaw),
+      totalBlocos: resultadoFinal.length,
+      tamanhoPrimeiroBloco: resultadoFinal[0]?.length || 0
+    });
+
+    if (!resultadoFinal.length) {
+      return res.status(200).json({
+        success: false,
+        curso: cursoResposta(curso, cursoRaw),
+        resultado: [],
+        erro: "Nenhum conteúdo foi montado pelo aggregator.",
+        retry: true
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      curso: cursoRaw,
-      resultado: Array.isArray(blocos) ? blocos : [blocos]
+      curso: cursoResposta(curso, cursoRaw),
+      resultado: resultadoFinal,
+      erro: null,
+      retry: false
     });
 
   } catch (erro) {
-
     console.error("Erro rastreio:", erro);
 
     return res.status(500).json({
       success: false,
+      curso: cursoRaw || null,
+      resultado: [],
       erro: "Erro interno",
-      detalhes: erro.message
+      detalhes: erro.message,
+      retry: true
     });
-
   }
-
 }
