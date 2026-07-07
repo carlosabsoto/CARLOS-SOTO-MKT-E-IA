@@ -173,6 +173,23 @@ export default async function handler(req, res) {
 
     dados = limparDuplicados(dados);
 
+    // Garante que sistemas mencionados em paresSistema também sejam carregados
+    if (
+      Array.isArray(dados.paresSistema) &&
+      dados.paresSistema.length
+    ) {
+      const sistemasDosPares = dados.paresSistema
+        .map(item => Number(item.sistema))
+        .filter(n => !isNaN(n));
+    
+      dados.sistemas = [
+        ...new Set([
+          ...(Array.isArray(dados.sistemas) ? dados.sistemas : []),
+          ...sistemasDosPares
+        ])
+      ];
+    }
+
     console.log("CURSO:", curso);
     console.log("DADOS:", dados);
 
