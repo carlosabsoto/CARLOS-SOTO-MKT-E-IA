@@ -55,7 +55,10 @@ function normalizarCurso(cursoRaw = "") {
 function cursoResposta(cursoNormalizado, cursoRaw) {
   if (cursoNormalizado === "bioanimal") return "bio-animal";
   if (cursoNormalizado === "biohumano") return "bio-humano";
-  if (cursoNormalizado === "espiritos" || cursoNormalizado === "espiritosmiasmas") {
+  if (
+    cursoNormalizado === "espiritos" ||
+    cursoNormalizado === "espiritosmiasmas"
+  ) {
     return "espiritos-miasmas";
   }
 
@@ -64,44 +67,142 @@ function cursoResposta(cursoNormalizado, cursoRaw) {
 
 /*
 ------------------------------------------------
-PARSER DAM
+PARSER DAM — VERSÃO ROBUSTA
+Aceita:
+- com ou sem dois pontos
+- linha única ou múltiplas linhas
+- campos com acento ou sem acento
 ------------------------------------------------
 */
 
 function parseRastreioDAM(texto = "") {
-  const lower = texto
+  const normalizado = String(texto || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\r/g, "\n")
     .trim();
 
-  function extrairNumerosCampo(campo) {
-    const regex = new RegExp(
-      `(?:^|\\s)${campo}\\s*:\\s*([0-9,\\s]+)(?=\\s+[a-zA-Z]+\\s*:|$)`,
-      "i"
-    );
+  const campos = [
+    {
+      chave: "cartas",
+      aliases: [
+        "carta da consciencia",
+        "carta consciencia",
+        "cartas da consciencia",
+        "cartas",
+        "carta"
+      ]
+    },
+    {
+      chave: "areasSistemicas",
+      aliases: [
+        "areas sistemicas",
+        "area sistemica"
+      ]
+    },
+    {
+      chave: "areasDeAtuacao",
+      aliases: [
+        "areas de atuacao",
+        "area de atuacao",
+        "areas atuacao",
+        "area atuacao",
+        "atuacao"
+      ]
+    },
+    {
+      chave: "desativacoes",
+      aliases: [
+        "emocoes de desativacao",
+        "emocao de desativacao",
+        "desativacoes",
+        "desativacao"
+      ]
+    },
+    {
+      chave: "ativacoes",
+      aliases: [
+        "emocoes de ativacao",
+        "emocao de ativacao",
+        "emocoes ativacao",
+        "emocao ativacao",
+        "ativacoes",
+        "ativacao"
+      ]
+    }
+  ];
 
-    const match = lower.match(regex);
+  const resultado = {
+    cartas: [],
+    areasSistemicas: [],
+    areasDeAtuacao: [],
+    desativacoes: [],
+    ativacoes: []
+  };
 
-    if (!match) return [];
+  const ocorrencias = [];
 
-    return [
-      ...new Set(
-        match[1]
-          .split(",")
-          .map(n => Number(n.trim()))
-          .filter(n => !isNaN(n))
-      )
-    ];
+  for (const campo of campos) {
+    for (const alias of campo.aliases) {
+      const regex = new RegExp(`\\b${alias}\\b`, "gi");
+      let match;
+
+      while ((match = regex.exec(normalizado)) !== null) {
+        ocorrencias.push({
+          chave: campo.chave,
+          inicio: match.index,
+          fim: match.index + match[0].length
+        });
+      }
+    }
   }
 
-  return {
-    cartas: extrairNumerosCampo("cartas?"),
-    areasSistemicas: extrairNumerosCampo("areas?sistemicas?"),
-    areasDeAtuacao: extrairNumerosCampo("areas?deatuacao"),
-    desativacoes: extrairNumerosCampo("desativacoes"),
-    ativacoes: extrairNumerosCampo("ativacoes")
+  ocorrencias.sort((a, b) => {
+    if (a.inicio !== b.inicio) return a.inicio - b.inicio;
+    return b.fim - b.inicio - (a.fim - a.inicio);
+  });
+
+  const ocorrenciasFiltradas = [];
+
+  for (const atual of ocorrencias) {
+    const sobrepoe = ocorrenciasFiltradas.some(
+      item => atual.inicio >= item.inicio && atual.inicio < item.fim
+    );
+
+    if (!sobrepoe) {
+      ocorrenciasFiltradas.push(atual);
+    }
+  }
+
+  for (let i = 0; i < ocorrenciasFiltradas.length; i++) {
+    const atual = ocorrenciasFiltradas[i];
+    const proximo = ocorrenciasFiltradas[i + 1];
+
+    const trecho = normalizado
+      .slice(atual.fim, proximo ? proximo.inicio : normalizado.length)
+      .replace(/[:;\-–—]/g, " ");
+
+    const numeros =
+      trecho
+        .match(/\d+/g)
+        ?.map(Number)
+        .filter(n => !isNaN(n)) || [];
+
+    resultado[atual.chave].push(...numeros);
+  }
+
+  const dados = {
+    cartas: [...new Set(resultado.cartas)],
+    areasSistemicas: [...new Set(resultado.areasSistemicas)],
+    areasDeAtuacao: [...new Set(resultado.areasDeAtuacao)],
+    desativacoes: [...new Set(resultado.desativacoes)],
+    ativacoes: [...new Set(resultado.ativacoes)]
   };
+
+  console.log("🧩 DAM PARSE RESULT:", dados);
+
+  return dados;
 }
 
 /*
@@ -173,15 +274,18 @@ export default async function handler(req, res) {
 
     dados = limparDuplicados(dados);
 
-    // Garante que sistemas mencionados em paresSistema também sejam carregados
-    if (
-      Array.isArray(dados.paresSistema) &&
-      dados.paresSistema.length
-    ) {
+    /*
+    ---------------------------------------------
+    NORMALIZAÇÃO DE SISTEMAS
+    BIO HUMANO + BIO ANIMAL
+    ---------------------------------------------
+    */
+
+    if (Array.isArray(dados.paresSistema) && dados.paresSistema.length) {
       const sistemasDosPares = dados.paresSistema
         .map(item => Number(item.sistema))
         .filter(n => !isNaN(n));
-    
+
       dados.sistemas = [
         ...new Set([
           ...(Array.isArray(dados.sistemas) ? dados.sistemas : []),
