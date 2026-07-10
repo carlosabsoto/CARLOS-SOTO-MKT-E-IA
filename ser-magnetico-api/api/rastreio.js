@@ -448,26 +448,53 @@ export default async function handler(req, res) {
     */
 
     const tarefas = [];
-
+    
     for (const categoriaRecebida in dados) {
       const categoriaInterna = mapaCategorias[categoriaRecebida];
-      if (!categoriaInterna) continue;
-
-      const resolver = paths[categoriaInterna];
-
-      if (typeof resolver === "function") {
-        tarefas.push(
-          carregar(
-            categoriaInterna,
-            dados[categoriaRecebida],
-            resolver
-          )
-        );
+    
+      console.log("📂 CATEGORIA RECEBIDA:", categoriaRecebida);
+      console.log("📂 CATEGORIA INTERNA:", categoriaInterna);
+      console.log("🔢 NÚMEROS:", dados[categoriaRecebida]);
+    
+      if (!categoriaInterna) {
+        console.warn("⚠️ Categoria sem mapeamento:", categoriaRecebida);
+        continue;
       }
+    
+      const resolver = paths?.[categoriaInterna];
+    
+      console.log(
+        "🧭 RESOLVER:",
+        categoriaInterna,
+        typeof resolver,
+        resolver
+      );
+    
+      if (typeof resolver !== "function") {
+        console.error(
+          `❌ Resolver não encontrado em paths.${categoriaInterna}`
+        );
+        continue;
+      }
+    
+      tarefas.push(
+        carregar(
+          categoriaInterna,
+          dados[categoriaRecebida],
+          resolver
+        )
+      );
     }
-
+    
+    console.log("📦 TOTAL DE TAREFAS:", tarefas.length);
+    
     await Promise.all(tarefas);
-
+    
+    console.log(
+      "📚 RESULTADO APÓS FETCH:",
+      JSON.stringify(resultado, null, 2)
+    );
+    
     /*
     ---------------------------------------------
     AJUSTE SISTEMAS — BIO HUMANO + BIO ANIMAL
