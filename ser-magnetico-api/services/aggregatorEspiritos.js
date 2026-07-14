@@ -1,3 +1,4 @@
+```js
 export function dividirEmBlocos(texto = "", tamanho = 12000) {
   const partes = [];
   let inicio = 0;
@@ -10,7 +11,7 @@ export function dividirEmBlocos(texto = "", tamanho = 12000) {
   return partes;
 }
 
-function adicionarLista(dados = {}) {
+function adicionarLista(titulo, dados = {}) {
   let bloco = "";
 
   const lista = Object.values(dados).filter(
@@ -19,6 +20,10 @@ function adicionarLista(dados = {}) {
 
   if (!lista.length) return "";
 
+  if (titulo) {
+    bloco += titulo + "\n\n";
+  }
+
   lista.forEach(item => {
     bloco += item.trim() + "\n\n";
   });
@@ -26,27 +31,19 @@ function adicionarLista(dados = {}) {
   return bloco;
 }
 
-function adicionarMantras(resultado, numeros = []) {
-  let bloco = "";
+function adicionarMantra(resultado = {}, numero) {
+  const mantra = resultado.mantras?.[numero];
 
-  for (const numero of numeros) {
-    const mantra = resultado.mantras?.[numero];
-
-    if (typeof mantra === "string" && mantra.trim()) {
-      bloco += mantra.trim() + "\n\n";
-    }
+  if (typeof mantra !== "string" || !mantra.trim()) {
+    return "";
   }
 
-  return bloco;
+  return mantra.trim() + "\n\n";
 }
 
-function possuiConteudo(objeto) {
-  return (
-    objeto &&
-    typeof objeto === "object" &&
-    Object.values(objeto).some(
-      item => typeof item === "string" && item.trim()
-    )
+function possuiConteudo(dados = {}) {
+  return Object.values(dados).some(
+    item => typeof item === "string" && item.trim()
   );
 }
 
@@ -56,106 +53,146 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   MANTRA DE ABERTURA
+  Mantra 1
   ------------------------------------------------
   */
 
   if (resultado.mantras?.[1]) {
     conteudo += "Mantra de abertura\n\n";
-    conteudo += adicionarMantras(resultado, [1]);
+    conteudo += adicionarMantra(resultado, 1);
   }
 
   /*
   ------------------------------------------------
   PORTAIS
-  Mantras possíveis: 2 e 3
+  Mantras possíveis:
+  1 ou 2 → mantra 2
+  3 a 7 → mantra 3
   ------------------------------------------------
   */
 
   if (possuiConteudo(resultado.fechamentoPortais)) {
-    conteudo += adicionarMantras(resultado, [2, 3]);
-    conteudo += adicionarLista(resultado.fechamentoPortais);
+    conteudo += adicionarMantra(resultado, 2);
+    conteudo += adicionarMantra(resultado, 3);
+
+    conteudo += adicionarLista(
+      "",
+      resultado.fechamentoPortais
+    );
   }
 
   /*
   ------------------------------------------------
   PACTOS
-  Mantra: 4
+  Qualquer pacto → mantra 4
   ------------------------------------------------
   */
 
   if (possuiConteudo(resultado.cancelamentoPactos)) {
-    conteudo += adicionarMantras(resultado, [4]);
-    conteudo += adicionarLista(resultado.cancelamentoPactos);
+    conteudo += adicionarMantra(resultado, 4);
+
+    conteudo += adicionarLista(
+      "",
+      resultado.cancelamentoPactos
+    );
   }
 
   /*
   ------------------------------------------------
   ESPÍRITOS
-  Mantras possíveis: 5 e 6
+  Mantras possíveis:
+  1 ou 2 → mantra 5
+  3 a 7 → mantra 6
   ------------------------------------------------
   */
 
   if (possuiConteudo(resultado.liberacaoEspiritos)) {
-    conteudo += adicionarMantras(resultado, [5, 6]);
-    conteudo += adicionarLista(resultado.liberacaoEspiritos);
+    conteudo += adicionarMantra(resultado, 5);
+    conteudo += adicionarMantra(resultado, 6);
+
+    conteudo += adicionarLista(
+      "",
+      resultado.liberacaoEspiritos
+    );
   }
 
   /*
   ------------------------------------------------
   ENERGIAS DENSAS
-  Mantras possíveis: 7 e 8
+  Mantras possíveis:
+  1 ou 2 → mantra 7
+  3 a 7 → mantra 8
   ------------------------------------------------
   */
 
   if (possuiConteudo(resultado.energiasDensas)) {
-    conteudo += adicionarMantras(resultado, [7, 8]);
-    conteudo += adicionarLista(resultado.energiasDensas);
+    conteudo += adicionarMantra(resultado, 7);
+    conteudo += adicionarMantra(resultado, 8);
+
+    conteudo += adicionarLista(
+      "",
+      resultado.energiasDensas
+    );
   }
 
   /*
   ------------------------------------------------
   ASSOCIAÇÕES EMOCIONAIS
-  Mantra: 9
+  Qualquer associação → mantra 9
   ------------------------------------------------
   */
 
   if (possuiConteudo(resultado.associacaoEmocional)) {
-    conteudo += adicionarMantras(resultado, [9]);
-    conteudo += adicionarLista(resultado.associacaoEmocional);
+    conteudo += adicionarMantra(resultado, 9);
+
+    conteudo += adicionarLista(
+      "",
+      resultado.associacaoEmocional
+    );
   }
 
   /*
   ------------------------------------------------
   PSIQUISMO
-  Mãe: mantra 10
-  Pai: mantra 11
+  Mãe → mantra 10
+  Pai → mantra 11
   ------------------------------------------------
   */
 
-  conteudo += adicionarMantras(resultado, [10, 11]);
+  conteudo += adicionarMantra(resultado, 10);
+  conteudo += adicionarMantra(resultado, 11);
 
   /*
   ------------------------------------------------
   MIASMAS
-  Mantras possíveis: 12 e 13
+  Mantras possíveis:
+  1 ou 6 → mantra 12
+  2 a 5 ou 7 → mantra 13
   ------------------------------------------------
   */
 
   if (possuiConteudo(resultado.miasmas)) {
-    conteudo += adicionarMantras(resultado, [12, 13]);
-    conteudo += adicionarLista(resultado.miasmas);
+    conteudo += adicionarMantra(resultado, 12);
+    conteudo += adicionarMantra(resultado, 13);
+
+    conteudo += adicionarLista(
+      "",
+      resultado.miasmas
+    );
   }
 
   /*
   ------------------------------------------------
   MANTRA DE ENCERRAMENTO
+  Mantra 14
   ------------------------------------------------
   */
 
   if (resultado.mantras?.[14]) {
     conteudo += "Mantra de encerramento\n\n";
-    conteudo += adicionarMantras(resultado, [14]);
+    conteudo += adicionarMantra(resultado, 14);
   }
 
   return dividirEmBlocos(conteudo.trim(), 12000);
 }
+```
