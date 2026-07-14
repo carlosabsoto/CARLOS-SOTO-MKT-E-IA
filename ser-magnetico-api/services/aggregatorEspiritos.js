@@ -1,4 +1,3 @@
-```js
 export function dividirEmBlocos(texto = "", tamanho = 12000) {
   const partes = [];
   let inicio = 0;
@@ -14,7 +13,7 @@ export function dividirEmBlocos(texto = "", tamanho = 12000) {
 function adicionarLista(titulo, dados = {}) {
   let bloco = "";
 
-  const lista = Object.values(dados).filter(
+  const lista = Object.values(dados || {}).filter(
     item => typeof item === "string" && item.trim()
   );
 
@@ -42,7 +41,7 @@ function adicionarMantra(resultado = {}, numero) {
 }
 
 function possuiConteudo(dados = {}) {
-  return Object.values(dados).some(
+  return Object.values(dados || {}).some(
     item => typeof item === "string" && item.trim()
   );
 }
@@ -53,7 +52,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   MANTRA DE ABERTURA
-  Mantra 1
   ------------------------------------------------
   */
 
@@ -65,9 +63,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   PORTAIS
-  Mantras possíveis:
-  1 ou 2 → mantra 2
-  3 a 7 → mantra 3
   ------------------------------------------------
   */
 
@@ -84,7 +79,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   PACTOS
-  Qualquer pacto → mantra 4
   ------------------------------------------------
   */
 
@@ -100,9 +94,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   ESPÍRITOS
-  Mantras possíveis:
-  1 ou 2 → mantra 5
-  3 a 7 → mantra 6
   ------------------------------------------------
   */
 
@@ -119,9 +110,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   ENERGIAS DENSAS
-  Mantras possíveis:
-  1 ou 2 → mantra 7
-  3 a 7 → mantra 8
   ------------------------------------------------
   */
 
@@ -138,7 +126,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   ASSOCIAÇÕES EMOCIONAIS
-  Qualquer associação → mantra 9
   ------------------------------------------------
   */
 
@@ -154,8 +141,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   PSIQUISMO
-  Mãe → mantra 10
-  Pai → mantra 11
   ------------------------------------------------
   */
 
@@ -165,9 +150,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   MIASMAS
-  Mantras possíveis:
-  1 ou 6 → mantra 12
-  2 a 5 ou 7 → mantra 13
   ------------------------------------------------
   */
 
@@ -184,7 +166,6 @@ export function aggregateEspiritos(resultado = {}) {
   /*
   ------------------------------------------------
   MANTRA DE ENCERRAMENTO
-  Mantra 14
   ------------------------------------------------
   */
 
@@ -195,4 +176,3 @@ export function aggregateEspiritos(resultado = {}) {
 
   return dividirEmBlocos(conteudo.trim(), 12000);
 }
-```
